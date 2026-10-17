@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beckon: ring your iPhone, AirPods and AirTags from your Mac</title>
+<meta name="description" content="A free Mac menu-bar app and desktop widget that makes your iPhone, iPad, AirPods, Apple Watch or AirTag play a sound, in one click, one key or one word.">
+<link rel="icon" type="image/png" href="icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Beckon: ring your iPhone from your Mac">
+<meta property="og:description" content="One click, one key or one word makes a misplaced iPhone, AirPods or AirTag play a sound, even on silent. Free for Mac.">
+<meta property="og:image" content="https://danielyaa5.github.io/beckon/screenshot-window.png">
+<meta property="og:url" content="https://danielyaa5.github.io/beckon/">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  :root {
+    --bg: #f6f4f1; --card: #ffffff; --fg: #1d1b1a; --muted: #625d59; --line: #e4dfda;
+    --accent: #b6400b; --accent-ink: #ffffff; --soft: #fbebe1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #171514; --card: #221f1d; --fg: #f3f0ee; --muted: #a9a29c; --line: #36312e;
+      --accent: #ff8a52; --accent-ink: #1d0f07; --soft: #3a2418;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+  a { color: var(--accent); }
+  img, video { max-width: 100%; height: auto; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 0 22px; }
+  section { padding: 44px 0; }
+  h1 { font-size: clamp(30px, 5.2vw, 50px); line-height: 1.1; letter-spacing: -.02em; margin: 16px 0 14px; }
+  h2 { font-size: clamp(24px, 3.4vw, 32px); line-height: 1.2; letter-spacing: -.01em; margin: 0 0 18px; }
+  h3 { font-size: 19px; margin: 0 0 6px; }
+  p { margin: 0 0 12px; }
+  .muted { color: var(--muted); }
+
+  .hero { text-align: center; padding: 56px 0 26px; }
+  .hero img.icon { width: 112px; height: 112px; }
+  .hero .lede { font-size: clamp(18px, 2.2vw, 21px); color: var(--muted); max-width: 680px; margin: 0 auto 26px; }
+  .download { display: inline-block; background: var(--accent); color: var(--accent-ink); text-decoration: none; font-weight: 650; font-size: 20px; padding: 15px 30px; border-radius: 14px; }
+  .download:hover { filter: brightness(1.08); }
+  .download:focus-visible { outline: 3px solid var(--fg); outline-offset: 3px; }
+  .fine { color: var(--muted); font-size: 15px; margin-top: 14px; }
+
+  .demo { padding-top: 10px; }
+  .demo video, .demo img { display: block; width: 100%; border-radius: 16px; border: 1px solid var(--line); background: var(--card); }
+  .demo p { text-align: center; font-size: 15px; margin-top: 10px; }
+
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px; }
+  .card p:last-child { margin-bottom: 0; }
+  .step { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; background: var(--soft); color: var(--accent); font-weight: 700; margin-bottom: 10px; }
+
+  .feature { display: grid; gap: 26px; align-items: center; grid-template-columns: 1fr; padding: 26px 0; border-top: 1px solid var(--line); }
+  .feature:first-of-type { border-top: 0; }
+  @media (min-width: 820px) {
+    .feature { grid-template-columns: 1fr 1.25fr; }
+    .feature.flip > :first-child { order: 2; }
+  }
+  .feature img { display: block; margin: 0 auto; }
+  .feature .narrow { max-width: 360px; }
+  kbd { font: 600 14px -apple-system, system-ui, sans-serif; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; background: var(--card); }
+
+  ul.plain { list-style: none; margin: 0; padding: 0; }
+  ul.plain li { padding: 12px 0 12px 30px; border-top: 1px solid var(--line); position: relative; }
+  ul.plain li:first-child { border-top: 0; }
+  ul.plain li::before { content: "•"; position: absolute; left: 8px; color: var(--accent); font-weight: 700; }
+
+  details { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; margin-bottom: 10px; }
+  summary { cursor: pointer; font-weight: 600; }
+  details p { margin: 10px 0 0; color: var(--muted); }
+
+  .again { text-align: center; }
+  footer { border-top: 1px solid var(--line); padding: 26px 0 40px; color: var(--muted); font-size: 15px; text-align: center; }
+</style>
+</head>
+<body>
+
+<header class="hero wrap">
+  <img class="icon" src="icon.png" alt="">
+  <h1>Ring your iPhone from your Mac, in&nbsp;one&nbsp;click</h1>
+  <p class="lede">Beckon makes a misplaced iPhone, iPad, AirPods, Apple Watch or AirTag play a sound, even on silent. From the menu bar, a desktop widget, a shortcut key or Siri, without opening Find&nbsp;My.</p>
+  <a class="download" href="https://github.com/danielyaa5/beckon/releases/latest/download/Beckon.zip">Download for Mac</a>
+  <p class="fine">Free · macOS 14 or later · Apple silicon and Intel · signed and checked by Apple</p>
+</header>
+
+<main>
+  <section class="demo wrap" aria-label="Demo">
+    <video autoplay loop muted playsinline poster="demo-poster.png" width="1280" height="800">
+      <source src="demo.mp4" type="video/mp4">
+      <img src="demo.gif" alt="Typing 'air' in Beckon's palette rings Alex's AirPods Pro, then clicking Ring on the desktop widget shows Sending and then Sent">
+    </video>
+    <p class="muted">The demo and screenshots use made-up devices. Nothing in them really rang.</p>
+  </section>
+
+  <section class="wrap" id="start">
+    <h2>Set it up in a minute</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="step">1</div>
+        <h3>Download it</h3>
+        <p>Click <a href="https://github.com/danielyaa5/beckon/releases/latest/download/Beckon.zip">Download for Mac</a>, open <b>Beckon.zip</b> and drag <b>Beckon</b> into your Applications folder. Then open it.</p>
+      </div>
+      <div class="card">
+        <div class="step">2</div>
+        <h3>Sign in once</h3>
+        <p>Click the Beckon icon in the menu bar and sign in with your Apple Account email and password. Apple checks the password before Beckon saves it, in your Mac's Keychain.</p>
+      </div>
+      <div class="card">
+        <div class="step">3</div>
+        <h3>Star your favorites</h3>
+        <p>Star the devices you lose most. They go to the top of the menu, onto the widget, and onto <kbd>⌘1</kbd>–<kbd>⌘9</kbd>. Add the <b>Ring</b> widget from the desktop's <b>Edit Widgets</b>.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap" aria-label="Features">
+    <h2>Every way to ring</h2>
+
+    <div class="feature">
+      <div>
+        <h3>Desktop widgets</h3>
+        <p>One click on <b>Ring</b> sends it straight from the widget, even with the app closed. The button says <b>Sending…</b> right away, then <b>Sent</b> once Apple has it. <b>Last rings</b> rings anything again.</p>
+      </div>
+      <img src="screenshot-widgets.png" alt="Beckon's small and medium Ring widgets and the Last rings widget on a desktop" width="1200" height="875" loading="lazy">
+    </div>
+
+    <div class="feature flip">
+      <div>
+        <h3>A palette on a key</h3>
+        <p>Press <kbd>⌃⌥Space</kbd> anywhere, type a few letters and press Return. <kbd>⌃⌥⌘R</kbd> rings your favorite without even that. Both keys can be changed.</p>
+      </div>
+      <img src="screenshot-palette.png" alt="The ring palette with 'air' typed and Alex's AirPods Pro selected" width="1100" height="982" loading="lazy">
+    </div>
+
+    <div class="feature">
+      <div>
+        <h3>The menu bar</h3>
+        <p>Search with <kbd>⌘K</kbd>, your favorites with their keys, and your last rings with <b>Again</b>. Beckon lives here, with no Dock icon unless its window is open.</p>
+      </div>
+      <img class="narrow" src="screenshot-menu.png" alt="Beckon's menu bar popover with favorites, AirTags and recent rings" width="700" height="977" loading="lazy">
+    </div>
+
+    <div class="feature flip">
+      <div>
+        <h3>The window</h3>
+        <p>All your devices by type, AirTags, devices you've hidden (old Macs, say), your ring history and settings. Siri and Shortcuts get <b>Ring a Device</b> too: "Ring my device with Beckon."</p>
+      </div>
+      <img src="screenshot-window.png" alt="Beckon's window listing six devices with Ring buttons and stars" width="1600" height="1102" loading="lazy">
+    </div>
+
+    <div class="feature">
+      <div>
+        <h3>AirTags, too</h3>
+        <p>Apple's web Find My can't ring AirTags, so Beckon drives the Mac's Find My app for you. It works when the AirTag is in Bluetooth range of your Mac, and needs Accessibility and Screen Recording permission. Find My shows for a moment while it rings.</p>
+      </div>
+      <img src="screenshot-airtags.png" alt="Beckon's AirTags page listing Keys, Backpack, Wallet, Car and Suitcase" width="1600" height="1102" loading="lazy">
+    </div>
+  </section>
+
+  <section class="wrap" id="privacy">
+    <h2>What Beckon keeps, and what it doesn't</h2>
+    <ul class="plain">
+      <li>Your password stays in your Mac's Keychain. Beckon signs in to Apple only when you ring, or when you load your device list.</li>
+      <li>It keeps your devices' names and models, your favorites and your last 200 rings, on your Mac. No battery, location or status is collected or kept.</li>
+      <li>There's no Beckon server, account or analytics. Your Mac talks only to Apple.</li>
+      <li>Apple emails you each time a device rings, just as it does from iCloud.com.</li>
+    </ul>
+  </section>
+
+  <section class="wrap" id="faq">
+    <h2>Questions</h2>
+    <details>
+      <summary>Is this from Apple?</summary>
+      <p>No. Beckon is an independent app. Apple has no public way to make a device play a sound, so Beckon signs in to Find My's web service with your password, the same way iCloud.com's Find Devices does. Apple could change that service at any time, and automating iCloud may go against its terms, so use it for your own devices and at your own risk.</p>
+    </details>
+    <details>
+      <summary>Why does it need my Apple Account password?</summary>
+      <p>That's how Find My on the web lets a device ring without a two-factor code. Beckon checks the password with Apple before saving it, and if Apple ever rejects it (say you changed it), Beckon forgets it rather than trying again.</p>
+    </details>
+    <details>
+      <summary>Why does a ring take a couple of seconds?</summary>
+      <p>Each ring signs in to Apple and then sends the sound, which takes about two to three seconds. The widget shows <b>Sending…</b> meanwhile.</p>
+    </details>
+    <details>
+      <summary>Is there an iPhone version?</summary>
+      <p>Not yet. Beckon is Mac only for now.</p>
+    </details>
+    <details>
+      <summary>Can I see the code?</summary>
+      <p>Yes, it's all on <a href="https://github.com/danielyaa5/beckon">GitHub</a>, including how the sign-in works.</p>
+    </details>
+  </section>
+
+  <section class="wrap again">
+    <a class="download" href="https://github.com/danielyaa5/beckon/releases/latest/download/Beckon.zip">Download Beckon for Mac</a>
+    <p class="fine"><a href="https://github.com/danielyaa5/beckon/releases">All releases</a> · <a href="https://github.com/danielyaa5/beckon">Source on GitHub</a></p>
+  </section>
+</main>
+
+<footer class="wrap">
+  Beckon is made by <a href="https://github.com/danielyaa5">Daniel Yakobian</a>. Not affiliated with Apple. iPhone, AirPods, AirTag and Find My are trademarks of Apple Inc.
+</footer>
+
+</body>
+</html>

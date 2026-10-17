@@ -27,6 +27,15 @@ enum SharedStore {
 
     static let log = Logger(subsystem: "com.danielyakobian.findmy-ring", category: "store")
 
+    /// Made-up devices and rings for screenshots (`Beckon --screenshots`).
+    /// While set, nothing is read from or written to the real files or the
+    /// Keychain: changes stay in memory and vanish when the app quits.
+    struct Demo {
+        var config: Config
+        var history: [RingEvent]
+    }
+    nonisolated(unsafe) static var demo: Demo?
+
     /// One device, as much as ringing needs. Since 0.4 no battery, location
     /// or place is kept (the app doesn't collect device data); `online` only
     /// sorts long-offline devices last.
@@ -150,9 +159,15 @@ enum SharedStore {
         }
     }
 
-    static func load() -> Config { read(Config.self, "config.json") ?? Config() }
+    static func load() -> Config {
+        if let demo { return demo.config }
+        return read(Config.self, "config.json") ?? Config()
+    }
 
-    static func save(_ config: Config) { write(config, "config.json") }
+    static func save(_ config: Config) {
+        if demo != nil { demo?.config = config; return }
+        write(config, "config.json")
+    }
 
     static func update(_ change: (inout Config) -> Void) {
         var config = load()
@@ -180,11 +195,15 @@ enum SharedStore {
         let note: String?
     }
 
-    static func history() -> [RingEvent] { read([RingEvent].self, "history.json") ?? [] }
+    static func history() -> [RingEvent] {
+        if let demo { return demo.history }
+        return read([RingEvent].self, "history.json") ?? []
+    }
 
     /// The app and the widget both add rings, from separate processes; a file
     /// coordinator keeps one from overwriting the other's new entry.
     static func record(_ event: RingEvent) {
+        if demo != nil { demo?.history.insert(event, at: 0); return }
         coordinatedWrite("history.json") {
             var events = history()
             events.insert(event, at: 0)
@@ -193,6 +212,7 @@ enum SharedStore {
     }
 
     static func clearHistory() {
+        if demo != nil { demo?.history = []; return }
         coordinatedWrite("history.json") { write([RingEvent](), "history.json") }
     }
 
@@ -234,29 +254,37 @@ enum SharedStore {
     }
 
     static func widgetRingStatus(at now: Date = .now) -> WidgetRingStatus? {
+        if demo != nil { return nil }
         guard let status = read(WidgetRingStatus.self, "widget-status.json"), status.expires > now else { return nil }
         return status
     }
 
-    static func setWidgetRingStatus(_ status: WidgetRingStatus) { write(status, "widget-status.json") }
+    static func setWidgetRingStatus(_ status: WidgetRingStatus) {
+        if demo != nil { return }
+        write(status, "widget-status.json")
+    }
 
     // MARK: Password
 
     static func savePassword(_ password: String, appleID: String) throws {
+        if demo != nil { return }
         try KeychainStore.save(password: password, account: appleID, accessGroup: keychainGroup)
     }
 
     static func password(appleID: String) -> String? {
         guard !appleID.isEmpty else { return nil }
+        if demo != nil { return "demo" }
         return KeychainStore.read(account: appleID, accessGroup: keychainGroup)
     }
 
     /// Only the password: devices, favorites and history stay for the next sign-in.
     static func forgetPassword(appleID: String) {
+        if demo != nil { return }
         KeychainStore.delete(account: appleID, accessGroup: keychainGroup)
     }
 
     static func clear(appleID: String) {
+        if demo != nil { return }
         KeychainStore.delete(account: appleID, accessGroup: keychainGroup)
         update { $0.devices = [] }
     }
@@ -266,6 +294,7 @@ enum SharedStore {
     /// (its account is the email), so a lost or never-written settings file
     /// doesn't sign you out.
     static func prepare() {
+        if demo != nil { return }
         var config = load()
         if config.appleID?.isEmpty ?? true,
            let account = KeychainStore.savedAccount(accessGroup: keychainGroup) {

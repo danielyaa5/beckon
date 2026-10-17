@@ -80,6 +80,8 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.danielyakobian.findmy-ring.RingWidget
+        # The shared widget views use the ring intent only in the extension.
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) WIDGET_EXTENSION
         PRODUCT_NAME: RingWidget
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: Widget/Info.plist

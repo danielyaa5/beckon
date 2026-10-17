@@ -4,8 +4,13 @@ import SwiftUI
 struct FindMyRingApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
+    init() {
+        // Before anything reads the settings: screenshots use made-up devices.
+        if Screenshots.active { SharedStore.demo = DemoData.store }
+    }
+
     var body: some Scene {
-        MenuBarExtra {
+        MenuBarExtra(isInserted: .constant(!Screenshots.active)) {
             MenuPopover().environmentObject(AppModel.shared)
         } label: {
             Image(systemName: "iphone.radiowaves.left.and.right")
@@ -17,6 +22,11 @@ struct FindMyRingApp: App {
 /// Launch work that can't wait for the menu to be opened.
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if Screenshots.active {
+            NSApp.setActivationPolicy(.accessory)
+            Task { await Screenshots.run() }
+            return
+        }
         DockPolicy.apply()
         let model = AppModel.shared
         Hotkeys.install()

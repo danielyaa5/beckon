@@ -5,6 +5,10 @@ through Find My — one tap, one key or one word to make a misplaced iPhone play
 sound, even on silent. Built 2026-10-15 as "Find My Ring"; redesigned in 0.3.0
 and renamed Beckon in 0.4.1 (both 2026-10-16).
 
+![Typing "air" in Beckon's palette rings AirPods; clicking Ring on the desktop widget shows Sending, then Sent](docs/demo.gif)
+
+**Website:** https://danielyaa5.github.io/beckon/
+
 ## Download
 
 **[Download Beckon for Mac](https://github.com/danielyaa5/beckon/releases/latest/download/Beckon.zip)**
@@ -22,6 +26,17 @@ and renamed Beckon in 0.4.1 (both 2026-10-16).
 Every release is listed on the
 [Releases page](https://github.com/danielyaa5/beckon/releases). Read the
 "Unofficial" note below before you sign in.
+
+## Screenshots
+
+| | |
+|---|---|
+| ![The window, listing devices with Ring buttons](docs/screenshot-window.png) | ![The menu bar popover with favorites and recent rings](docs/screenshot-menu.png) |
+| ![The ring palette](docs/screenshot-palette.png) | ![The Ring and Last rings widgets](docs/screenshot-widgets.png) |
+
+The demo and screenshots show made-up devices. They're drawn by Beckon's own
+screenshot mode, so they match the app: `release/screenshots.sh` rebuilds all
+of them (see "Screenshots and the website" below).
 
 ## What it does (0.4.0: ringing only)
 
@@ -163,15 +178,33 @@ and `items` commands of [findmy-cli](https://github.com/omarshahine/findmy-cli)
 | `Sources/FindMyRingKit/` | the shared, platform-agnostic kit: `SRP.swift` (the GSA SRP-6a port, verified against the Python `srp` library), `FindMyRing.swift` (sign-in + Find My calls), `Keychain.swift`, `Crypto.swift`, `Models.swift` |
 | `Sources/ringcli/` | a command-line tool to test the kit against a real account |
 | `Tests/` | SRP cross-check vectors (Python `srp` → Swift must match) |
-| `App/` | the macOS app: `MenuPopover` (menu bar), `RingPalette` + `RingHUD` (palette, on-screen confirmation), `MainWindow` + `MainWindowController` (window, Dock behavior, links), `AppModel`, `FindMyService` (iCloud session), `Hotkeys`, `AppIntents` (Shortcuts/Siri); `FindMyAutomator.swift` rings and finds AirTags through the Find My app |
+| `App/` | the macOS app: `MenuPopover` (menu bar), `RingPalette` + `RingHUD` (palette, on-screen confirmation), `MainWindow` + `MainWindowController` (window, Dock behavior, links), `AppModel`, `FindMyService` (iCloud session), `Hotkeys`, `AppIntents` (Shortcuts/Siri); `FindMyAutomator.swift` rings and finds AirTags through the Find My app; `Screenshots.swift` is the `--screenshots` mode |
 | `release/notarize.sh` | Developer ID archive → notarize → staple → zip (signing via Xcode's account) |
-| `Widget/` | the WidgetKit extension: the Ring and Last rings widgets; buttons ring through `RingDeviceIntent` in the widget's own process |
-| `Shared/` | `SharedStore` (App Group files + shared Keychain), `DeviceInfo` (device kinds, ring targets, status texts), `Theme`; compiled into both the app and the widget |
+| `release/screenshots.sh`, `release/make_media.py` | rebuild the README and website images and demo |
+| `docs/` | the GitHub Pages site and the README images |
+| `Widget/` | the WidgetKit extension: the Ring and Last rings widgets' timelines; buttons ring through `RingDeviceIntent` in the widget's own process |
+| `Shared/` | `SharedStore` (App Group files + shared Keychain, and the screenshot demo data hook), `DeviceInfo` (device kinds, ring targets, status texts), `Theme`, `WidgetViews` (the widgets' views; the app draws them only for screenshots, and `WIDGET_EXTENSION` keeps the ring intent in the extension); compiled into both the app and the widget |
 | `project.yml` | XcodeGen spec; `.xcodeproj` is generated, not committed |
 
 `FindMyRingKit` is a SwiftPM package (depends only on `attaswift/BigInt` for the
 2048-bit modular exponentiation). The app/widget are an Xcode project generated
 from `project.yml`.
+
+## Screenshots and the website
+
+`release/screenshots.sh` builds a throwaway copy of the app (its widget and
+Siri metadata stripped, so macOS never mistakes it for the installed one) and
+runs `Beckon --screenshots <folder>`. That mode (`App/Screenshots.swift`)
+swaps in made-up devices through `SharedStore.demo`, so nothing real is read,
+written or rung, and saves each screen with `screencapture -l`: the windows sit
+just above the wallpaper, behind everything else, because macOS won't capture
+a window placed off screen. The widgets' views live in
+`Shared/WidgetViews.swift` so the app can draw them too. Then
+`release/make_media.py` (Pillow and ffmpeg) composes the screenshots, the
+widgets picture and the demo GIF/MP4 into `docs/`.
+
+`docs/` is also the GitHub Pages site, https://danielyaa5.github.io/beckon/
+(`docs/index.html`; `.nojekyll` serves files as they are).
 
 ## Build
 

@@ -41,7 +41,7 @@ final class AppModel: ObservableObject {
         SharedStore.prepare()
         config = SharedStore.load()
         history = SharedStore.history()
-        airTagPermissionsOK = FindMyAutomator.hasAccessibility && FindMyAutomator.hasScreenRecording
+        airTagPermissionsOK = SharedStore.demo != nil || (FindMyAutomator.hasAccessibility && FindMyAutomator.hasScreenRecording)
         // Re-save in the current format: since 0.4 the device list keeps no
         // battery, location or place, so this drops any an older version saved.
         if !config.devices.isEmpty { SharedStore.save(config) }
@@ -348,7 +348,7 @@ final class AppModel: ObservableObject {
     // MARK: AirTags
 
     func refreshPermissions() {
-        airTagPermissionsOK = FindMyAutomator.hasAccessibility && FindMyAutomator.hasScreenRecording
+        airTagPermissionsOK = SharedStore.demo != nil || (FindMyAutomator.hasAccessibility && FindMyAutomator.hasScreenRecording)
     }
 
     func requestAccessibility() {

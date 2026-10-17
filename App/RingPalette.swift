@@ -62,13 +62,23 @@ final class PalettePanel: NSPanel {
     override func cancelOperation(_ sender: Any?) { orderOut(nil) }
 }
 
-private struct PaletteView: View {
+struct PaletteView: View {
     @EnvironmentObject var model: AppModel
     let close: () -> Void
 
-    @State private var query = ""
+    @State private var query: String
     @State private var selected = 0
     @FocusState private var focused: Bool
+
+    private let autofocus: Bool
+
+    /// `query` and `autofocus` are set only for screenshots; the palette
+    /// opens empty, with the cursor in the search field.
+    init(query: String = "", autofocus: Bool = true, close: @escaping () -> Void) {
+        _query = State(initialValue: query)
+        self.autofocus = autofocus
+        self.close = close
+    }
 
     private var matches: [RingTarget] { model.search(query) }
     private var results: [RingTarget] { Array(matches.prefix(8)) }
@@ -135,7 +145,7 @@ private struct PaletteView: View {
         }
         // The panel's hidden title bar otherwise leaves an empty band on top.
         .ignoresSafeArea()
-        .onAppear { focused = true }
+        .onAppear { focused = autofocus }
     }
 
     private var current: RingTarget? { results.indices.contains(selected) ? results[selected] : nil }

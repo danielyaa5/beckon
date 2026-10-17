@@ -72,7 +72,7 @@ final class RingHUD {
     }
 }
 
-private struct HUDView: View {
+struct HUDView: View {
     let symbol: String
     let title: String
     let detail: String
