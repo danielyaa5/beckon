@@ -1,0 +1,9 @@
+.build/
+.tools/
+.swiftpm/
+*.xcodeproj
+DerivedData/
+xcuserdata/
+.DS_Store
+release/build/
+release/notarize.log

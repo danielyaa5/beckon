@@ -1,0 +1,88 @@
+name: FindMyRing
+options:
+  bundleIdPrefix: com.danielyakobian
+  createIntermediateGroups: true
+  deploymentTarget:
+    macOS: "14.0"
+  # XcodeGen doesn't know Icon Composer files: treat AppIcon.icon as one
+  # resource, so actool compiles it into the app icon (Liquid Glass layers in
+  # Assets.car, plus AppIcon.icns for older macOS).
+  fileTypes:
+    icon:
+      file: true
+      buildPhase: resources
+
+settings:
+  base:
+    DEVELOPMENT_TEAM: 4JWVY7832S
+    SWIFT_VERSION: "6.0"
+    CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: "0.4.4"
+    CURRENT_PROJECT_VERSION: "19"
+
+packages:
+  FindMyRingKit:
+    path: .
+  # Global shortcut keys with a recorder (MIT, Sindre Sorhus).
+  KeyboardShortcuts:
+    url: https://github.com/sindresorhus/KeyboardShortcuts
+    exactVersion: 3.1.0
+
+targets:
+  FindMyRing:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+        excludes:
+          - Info.plist
+      - path: Shared
+      - path: Icon/AppIcon.icon
+    dependencies:
+      - package: FindMyRingKit
+        product: FindMyRingKit
+      - package: KeyboardShortcuts
+      - target: RingWidget
+        embed: true
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Beckon
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        # Menu bar only; the window brings a Dock icon while it's open.
+        LSUIElement: true
+        CFBundleURLTypes:
+          - CFBundleURLName: com.danielyakobian.findmy-ring
+            CFBundleURLSchemes:
+              - beckon
+              # The name before 0.4.1, so old links still work.
+              - findmyring
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.danielyakobian.findmy-ring
+        PRODUCT_NAME: Beckon
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: NO
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_ENTITLEMENTS: App/FindMyRing.entitlements
+
+  RingWidget:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: Widget
+      - path: Shared
+    dependencies:
+      - package: FindMyRingKit
+        product: FindMyRingKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.danielyakobian.findmy-ring.RingWidget
+        PRODUCT_NAME: RingWidget
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: Widget/Info.plist
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_ENTITLEMENTS: Widget/RingWidget.entitlements
+        SKIP_INSTALL: YES
