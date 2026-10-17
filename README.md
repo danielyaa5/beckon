@@ -5,6 +5,24 @@ through Find My — one tap, one key or one word to make a misplaced iPhone play
 sound, even on silent. Built 2026-10-15 as "Find My Ring"; redesigned in 0.3.0
 and renamed Beckon in 0.4.1 (both 2026-10-16).
 
+## Download
+
+**[Download Beckon for Mac](https://github.com/danielyaa5/beckon/releases/latest/download/Beckon.zip)**
+(macOS 14 or later, Apple silicon or Intel; signed and notarized by Apple).
+
+1. Open the zip and drag **Beckon** into Applications, then open it.
+2. Click the Beckon icon in the menu bar and sign in with your Apple Account
+   email and password. Apple checks the password before Beckon saves it, in
+   your Mac's Keychain.
+3. Star the devices you ring most, and add the **Ring** widget from the
+   desktop's Edit Widgets.
+4. For AirTags, allow Beckon under System Settings › Privacy & Security ›
+   **Accessibility** and **Screen Recording** (only needed for AirTags).
+
+Every release is listed on the
+[Releases page](https://github.com/danielyaa5/beckon/releases). Read the
+"Unofficial" note below before you sign in.
+
 ## What it does (0.4.0: ringing only)
 
 - **Menu bar** (design 3, "keyboard-first"): search on top (⌘K), favorites with
