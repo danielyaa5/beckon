@@ -332,28 +332,45 @@ struct SignInForm: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Sign in with your Apple Account")
+            if large {
+                Label("Apple Account", systemImage: "person.crop.circle")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color.ringText)
+            }
+            Text(large ? "Connect your devices" : "Sign in with your Apple Account")
                 .font(.system(size: large ? 22 : 14, weight: .bold))
-            Text("Use your Apple Account email and regular password, not an app-specific password. Your password stays in this Mac's Keychain.")
+            Text("Use your Apple Account email and regular password. Your password stays in this Mac's Keychain.")
                 .font(.system(size: large ? 13 : 11.5))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            TextField("Apple Account email", text: $email)
+            Text("Email address").font(.system(size: 12, weight: .medium))
+                .padding(.top, large ? 8 : 0)
+            TextField("name@example.com", text: $email)
                 .textFieldStyle(.roundedBorder)
                 .textContentType(.username)
+                .controlSize(large ? .large : .regular)
                 .disabled(model.refreshing)
-            SecureField("Password", text: $password)
+            Text("Password").font(.system(size: 12, weight: .medium))
+            SecureField("Apple Account password", text: $password)
+                .textContentType(.password)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit(submit)
+                .controlSize(large ? .large : .regular)
                 .disabled(model.refreshing)
             Button(action: submit) {
-                Text(model.refreshing ? "Signing in…" : "Sign in and load devices")
+                Text(model.refreshing ? "Signing in…" : "Sign in")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .tint(Color.ringFill)
             .controlSize(large ? .large : .regular)
             .disabled(email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || password.isEmpty || model.refreshing)
+            if large {
+                Label("Use your regular password, not an app-specific password.", systemImage: "lock.shield")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             if !model.status.isEmpty {
                 Text(model.status)
                     .font(.callout)
@@ -363,7 +380,7 @@ struct SignInForm: View {
                     .accessibilityIdentifier("signInStatus")
             }
         }
-        .frame(maxWidth: large ? 420 : .infinity)
+        .frame(width: large ? 332 : nil, alignment: .leading)
         .onAppear { email = model.appleID }
     }
 

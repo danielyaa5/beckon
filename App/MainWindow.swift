@@ -8,19 +8,16 @@ struct MainWindow: View {
     @EnvironmentObject var model: AppModel
 
     var body: some View {
-        NavigationSplitView {
-            Sidebar()
-                .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
-        } detail: {
+        Group {
             if model.hasCredentials {
-                // Top-aligned: a page with an empty list (AirTags, Hidden,
-                // Ring history) otherwise floats in the middle of a tall window.
-                detail
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                NavigationSplitView {
+                    Sidebar()
+                        .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
+                } detail: {
+                    detail.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                }
             } else {
-                SignInForm(large: true)
-                    .padding(40)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                SignInScreen()
             }
         }
         .tint(Color.ringFill)
@@ -494,6 +491,7 @@ private struct SettingsPane: View {
             }
 
             Section {
+                Button("Show walkthrough…") { OnboardingController.shared.show() }
                 UpdateSettings()
                 LabeledContent("Version", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")
             }

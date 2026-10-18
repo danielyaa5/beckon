@@ -27,6 +27,14 @@ Every release is listed on the
 [Releases page](https://github.com/danielyaa5/beckon/releases). Read the
 "Unofficial" note below before you sign in.
 
+## First launch (0.6.0)
+
+A short walkthrough covers signing in, starring favorites, adding the Ring and
+Last rings desktop widgets, keyboard shortcuts, and AirTag permissions. Skip it
+at any time or reopen it from Settings > Show walkthrough. Signed-out users get
+a compact sign-in card without the device sidebar. The widget extension carries
+its own copy of Beckon's icon for the widget gallery.
+
 ## Updates (0.5.1)
 
 Beckon uses [Sparkle](https://sparkle-project.org/) to check for signed updates.

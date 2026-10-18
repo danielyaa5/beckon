@@ -22,9 +22,14 @@ enum Screenshots {
     // An isolated, interactive sign-in form for UI verification. Never reads
     // saved accounts; use an invalid email to exercise validation without Apple.
     static var signInPreview: Bool { CommandLine.arguments.contains("--signin-preview") }
-    static var active: Bool { folder != nil || signInPreview }
+    static var walkthroughPreview: Bool { CommandLine.arguments.contains("--walkthrough-preview") }
+    static var active: Bool { folder != nil || signInPreview || walkthroughPreview }
 
     static func run() async {
+        if walkthroughPreview {
+            OnboardingController.shared.show()
+            return
+        }
         if signInPreview {
             MainWindowController.shared.show()
             return
@@ -34,6 +39,16 @@ enum Screenshots {
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let model = AppModel.shared
         let config = SharedStore.load()
+
+        // First-run screens use the same views as the interactive app.
+        await shoot("signin", style: .window(NSSize(width: 1060, height: 720))) {
+            SignInScreen().environmentObject(model)
+        }
+        for step in [0, 2, 3] {
+            await shoot("walkthrough-\(step)", style: .window(NSSize(width: 560, height: 650))) {
+                WalkthroughView(initialStep: step, finish: {}).environmentObject(model)
+            }
+        }
 
         // The window, one page at a time.
         for (section, name) in [(WindowSection.all, "window-all"), (.favorites, "window-favorites"),

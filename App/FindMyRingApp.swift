@@ -7,7 +7,7 @@ struct FindMyRingApp: App {
     init() {
         // Before anything reads the settings: screenshots use made-up devices.
         if Screenshots.active {
-            SharedStore.demo = Screenshots.signInPreview
+            SharedStore.demo = (Screenshots.signInPreview || Screenshots.walkthroughPreview)
                 ? SharedStore.Demo(config: SharedStore.Config(), history: []) : DemoData.store
         }
     }
@@ -39,7 +39,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let model = AppModel.shared
         Hotkeys.install()
         model.willAppear()
-        if !model.hasCredentials { MainWindowController.shared.show() }
+        if OnboardingController.shouldShow(hasCredentials: model.hasCredentials) {
+            OnboardingController.shared.show()
+        } else if !model.hasCredentials {
+            MainWindowController.shared.show()
+        }
         Task { await Installation.offerCleanup() }
     }
 
@@ -49,7 +53,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Opening the app again (Finder, Spotlight, the Dock) shows the window.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        MainWindowController.shared.show()
+        if OnboardingController.shared.isVisible {
+            OnboardingController.shared.show()
+        } else {
+            MainWindowController.shared.show()
+        }
         return true
     }
 }
