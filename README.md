@@ -38,6 +38,13 @@ at any time or reopen it from Settings > Show walkthrough. Signed-out users get
 a compact sign-in card without the device sidebar. The widget extension carries
 its own copy of Beckon's icon for the widget gallery.
 
+## Device list
+
+List view is the default, and Beckon remembers your layout choice. Devices
+reported offline at the last list reload have muted icons and an
+**Offline at last reload** badge. This is saved availability, not a live check;
+use **Reload list** to update it.
+
 ## Updates (0.5.1)
 
 Beckon uses [Sparkle](https://sparkle-project.org/) to check for signed updates.

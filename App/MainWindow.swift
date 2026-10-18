@@ -109,7 +109,7 @@ private struct Sidebar: View {
 private struct DevicesPane: View {
     @EnvironmentObject var model: AppModel
     let section: WindowSection
-    @AppStorage("windowLayout") private var layout = "grid"
+    @AppStorage("windowLayout") private var layout = "list"
 
     private var title: String {
         switch section {
@@ -172,9 +172,9 @@ struct DeviceCard: View {
             HStack(spacing: 10) {
                 Image(systemName: target.kind.symbol)
                     .font(.system(size: 17))
-                    .foregroundStyle(Color.ringText)
+                    .foregroundStyle(target.device?.online == false ? Color.secondary : Color.ringText)
                     .frame(width: 36, height: 36)
-                    .background(Color.ringText.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+                    .background((target.device?.online == false ? Color.secondary : Color.ringText).opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
                 VStack(alignment: .leading, spacing: 1) {
                     Text(target.name).font(.system(size: 13.5, weight: .bold)).lineLimit(1)
                     Text(target.device?.model ?? "AirTag").font(.system(size: 11.5)).foregroundStyle(.secondary).lineLimit(1)
@@ -184,6 +184,7 @@ struct DeviceCard: View {
             }
 
             HStack(spacing: 8) {
+                DeviceAvailabilityBadge(target: target)
                 if target.isAirTag {
                     Text("Rings over Bluetooth from this Mac").font(.system(size: 11.5)).foregroundStyle(.secondary).lineLimit(1)
                 }
@@ -207,13 +208,14 @@ private struct DeviceRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: target.kind.symbol)
-                .foregroundStyle(Color.ringText)
+                .foregroundStyle(target.device?.online == false ? Color.secondary : Color.ringText)
                 .frame(width: 24)
             VStack(alignment: .leading, spacing: 1) {
                 Text(target.name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
                 Text(model.detail(target)).font(.system(size: 11.5)).foregroundStyle(.secondary).lineLimit(1)
             }
             Spacer()
+            DeviceAvailabilityBadge(target: target)
             StarButton(target: target)
             MoreMenu(target: target)
             RingButton(target: target)
@@ -221,6 +223,22 @@ private struct DeviceRow: View {
         .padding(.horizontal, 14)
         .frame(height: 52)
         .background(.background)
+    }
+}
+
+private struct DeviceAvailabilityBadge: View {
+    let target: RingTarget
+
+    var body: some View {
+        if target.device?.online == false {
+            Label("Offline at last reload", systemImage: "wifi.slash")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 8).padding(.vertical, 4)
+                .background(.quaternary, in: Capsule())
+                .fixedSize()
+                .help("Apple reported this device offline when the list was loaded. Availability can change; use Reload list to update it.")
+        }
     }
 }
 

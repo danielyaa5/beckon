@@ -37,8 +37,8 @@ enum SharedStore {
     nonisolated(unsafe) static var demo: Demo?
 
     /// One device, as much as ringing needs. Since 0.4 no battery, location
-    /// or place is kept (the app doesn't collect device data); `online` only
-    /// sorts long-offline devices last.
+    /// or place is kept (the app doesn't collect device data); `online` sorts
+    /// offline devices last and labels their availability at the last reload.
     struct CachedDevice: Codable, Identifiable, Hashable, Sendable {
         let id: String
         let name: String

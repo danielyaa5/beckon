@@ -67,7 +67,7 @@ final class AppModel: ObservableObject {
     }
 
     /// What a target is ("iPhone 18 Pro", "AirTag"): the app keeps no
-    /// battery, location or status to show.
+    /// battery, location or place to show.
     func detail(_ t: RingTarget) -> String { Describe.detail(t) }
     func isFavorite(_ t: RingTarget) -> Bool { config.isFavorite(t) }
     func isHidden(_ t: RingTarget) -> Bool { config.isHidden(t) }
