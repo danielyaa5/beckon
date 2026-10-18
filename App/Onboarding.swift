@@ -167,7 +167,7 @@ struct WalkthroughView: View {
             title("Ready when\nyou need a ring.")
             tip("menubar.rectangle", "Look in the menu bar", "Click Beckon’s phone-and-waves icon to search your devices or ring a favorite.")
             tip("keyboard", "Keep a shortcut handy", "Open the ring palette with Control–Option–Space. Change your shortcuts in Settings.")
-            tip("airtag", "Looking for an AirTag?", "Open AirTags in Beckon. Your Mac must be awake, unlocked and nearby, with Accessibility and Screen Recording allowed. AirTags ring through the app.")
+            tip("airtag", "Looking for an AirTag?", "Choose Find your AirTags in Beckon’s menu to open Find My’s Items tab. Select your AirTag there to play a sound. Your Mac needs to be nearby.")
             Text("You can revisit this tour from Settings → Show walkthrough.")
                 .font(.footnote).foregroundStyle(.secondary)
         }

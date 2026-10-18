@@ -29,8 +29,11 @@ Every release is listed on the
 
 ## First launch (0.6.0)
 
+**Find your AirTags** in the menu bar opens the Items tab directly in Apple's
+Find My app. This shortcut doesn't need Accessibility or Screen Recording.
+
 A short walkthrough covers signing in, starring favorites, adding the Ring and
-Last rings desktop widgets, keyboard shortcuts, and AirTag permissions. Skip it
+Last rings desktop widgets, keyboard shortcuts, and opening AirTags in Find My. Skip it
 at any time or reopen it from Settings > Show walkthrough. Signed-out users get
 a compact sign-in card without the device sidebar. The widget extension carries
 its own copy of Beckon's icon for the widget gallery.

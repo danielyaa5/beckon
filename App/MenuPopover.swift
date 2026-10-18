@@ -8,6 +8,7 @@ struct MenuPopover: View {
     @State private var query = ""
     @State private var selected = 0
     @State private var windowAnchor = NSView()
+    @State private var hoveringAirTags = false
     @FocusState private var searchFocused: Bool
 
     private var results: [RingTarget] { Array(model.search(query).prefix(7)) }
@@ -172,20 +173,23 @@ struct MenuPopover: View {
         }
     }
 
-    /// A fixed place for AirTags: they don't come from iCloud, so they need
-    /// their own way in (the Find My scan in the window).
+    /// AirTags open directly in Find My, without Beckon scanning the window.
     private var airTagsRow: some View {
-        let count = model.config.airTags.count
-        return Button { openWindow(.airTags) } label: {
+        Button {
+            windowAnchor.window?.orderOut(nil)
+            if !NSWorkspace.shared.open(URL(string: "findmy://items")!) {
+                model.status = "Couldn't open Find My. Open it from Applications and choose Items."
+            }
+        } label: {
             HStack(spacing: 10) {
                 Image(systemName: "airtag")
                     .font(.system(size: 14))
-                    .foregroundStyle(Color.ringText)
+                    .foregroundStyle(.secondary)
                     .frame(width: 18)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(count == 0 ? "Find your AirTags" : "AirTags (\(count))")
+                    Text("Find your AirTags")
                         .font(.system(size: 13, weight: .semibold))
-                    Text(count == 0 ? "Reads them from the Find My app" : "Star one to put it above, or search for it")
+                    Text("Open Items in Find My")
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
@@ -196,10 +200,12 @@ struct MenuPopover: View {
             }
             .padding(.horizontal, 8)
             .frame(height: 42)
-            .background(Color.ringFill.opacity(count == 0 ? 0.12 : 0.05), in: RoundedRectangle(cornerRadius: 8))
+            .background(Color.primary.opacity(hoveringAirTags ? 0.07 : 0.035), in: RoundedRectangle(cornerRadius: 8))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .onHover { hoveringAirTags = $0 }
+        .help("Open Find My’s Items tab")
     }
 
     // MARK: Shortcut key and footer
