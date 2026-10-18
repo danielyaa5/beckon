@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// The menu-bar popover, design 3: search on top, favorites with ⌘1–⌘9,
@@ -6,6 +7,7 @@ struct MenuPopover: View {
     @EnvironmentObject var model: AppModel
     @State private var query = ""
     @State private var selected = 0
+    @State private var windowAnchor = NSView()
     @FocusState private var searchFocused: Bool
 
     private var results: [RingTarget] { Array(model.search(query).prefix(7)) }
@@ -38,10 +40,18 @@ struct MenuPopover: View {
         }
         .padding(10)
         .frame(width: 340)
+        .background(MenuWindowAnchor(view: windowAnchor))
         .onAppear {
             model.willAppear()
             searchFocused = true
         }
+    }
+
+    private func openWindow(_ section: WindowSection? = nil) {
+        // Hide this popup before the main window becomes key. Looking up the
+        // key window after opening Beckon would hide the main window instead.
+        windowAnchor.window?.orderOut(nil)
+        MainWindowController.shared.show(section)
     }
 
     // MARK: Search
@@ -142,48 +152,31 @@ struct MenuPopover: View {
 
     // MARK: Recent
 
+    private var recentTargets: [RingTarget] {
+        var seen = Set<String>()
+        return Array(model.history.compactMap { event -> RingTarget? in
+            guard seen.insert(event.target).inserted else { return nil }
+            return model.config.target(id: event.target)
+        }.prefix(3))
+    }
+
     @ViewBuilder private var recentSection: some View {
-        let recent = Array(model.history.prefix(3))
-        if !recent.isEmpty {
+        if !recentTargets.isEmpty {
             VStack(alignment: .leading, spacing: 2) {
                 Divider().padding(.bottom, 4)
                 SectionLabel(text: "Recent")
-                ForEach(recent) { event in
-                    HStack(spacing: 10) {
-                        Image(systemName: event.ok ? "clock" : "exclamationmark.triangle")
-                            .font(.system(size: 12))
-                            .foregroundStyle(event.ok ? Color.secondary : Color.orange)
-                            .frame(width: 16)
-                        Text(event.name).font(.system(size: 12.5)).lineLimit(1)
-                        Spacer()
-                        Text(Self.when(event.date)).font(.system(size: 11.5)).foregroundStyle(.secondary)
-                        if let t = model.config.target(id: event.target) {
-                            Button("Again") { Task { await model.ring(t, source: "Menu") } }
-                                .buttonStyle(.borderless)
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(Color.ringText)
-                                .disabled(model.ringingID != nil)
-                        }
-                    }
-                    .padding(.horizontal, 8)
-                    .frame(height: 30)
+                ForEach(recentTargets) { target in
+                    RecentRow(target: target)
                 }
             }
         }
-    }
-
-    static func when(_ date: Date) -> String {
-        let cal = Calendar.current
-        if cal.isDateInToday(date) { return date.formatted(date: .omitted, time: .shortened) }
-        if cal.isDateInYesterday(date) { return "Yesterday" }
-        return date.formatted(.dateTime.month(.abbreviated).day())
     }
 
     /// A fixed place for AirTags: they don't come from iCloud, so they need
     /// their own way in (the Find My scan in the window).
     private var airTagsRow: some View {
         let count = model.config.airTags.count
-        return Button { MainWindowController.shared.show(.airTags) } label: {
+        return Button { openWindow(.airTags) } label: {
             HStack(spacing: 10) {
                 Image(systemName: "airtag")
                     .font(.system(size: 14))
@@ -219,7 +212,7 @@ struct MenuPopover: View {
                     Keycap(text: key)
                     Text("rings \(t.name) from anywhere").font(.system(size: 11.5)).lineLimit(1)
                     Spacer()
-                    Button("Change") { MainWindowController.shared.show(.settings) }
+                    Button("Change") { openWindow(.settings) }
                         .buttonStyle(.borderless)
                         .font(.system(size: 11.5, weight: .semibold))
                         .foregroundStyle(Color.ringText)
@@ -255,7 +248,7 @@ struct MenuPopover: View {
             Divider()
             CheckForUpdatesButton()
             HStack(spacing: 8) {
-                Button("Open Beckon…") { MainWindowController.shared.show() }
+                Button("Open Beckon…") { openWindow() }
                     .keyboardShortcut("o", modifiers: .command)
                 Spacer()
                 if model.hasCredentials {
@@ -273,6 +266,14 @@ struct MenuPopover: View {
             .padding(.horizontal, 6)
         }
     }
+}
+
+/// Keeps a reference to this view's own menu window, independent of focus.
+private struct MenuWindowAnchor: NSViewRepresentable {
+    let view: NSView
+
+    func makeNSView(context: Context) -> NSView { view }
+    func updateNSView(_ nsView: NSView, context: Context) {}
 }
 
 /// One favorite: click (or ⌘ + its number) rings it.
@@ -308,6 +309,33 @@ private struct QuickRow: View {
         .keyboardShortcut(KeyEquivalent(Character("\(number)")), modifiers: .command)
         .onHover { hovering = $0 }
         .help("Ring \(target.name)")
+        .disabled(model.ringingID != nil)
+    }
+}
+
+private struct RecentRow: View {
+    @EnvironmentObject var model: AppModel
+    let target: RingTarget
+    @State private var hovering = false
+
+    var body: some View {
+        Button { Task { await model.ring(target, source: "Menu") } } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "clock").font(.system(size: 12))
+                    .foregroundStyle(.secondary).frame(width: 18)
+                Text(target.name).font(.system(size: 12.5)).lineLimit(1)
+                Spacer()
+                if model.ringingID == target.id { ProgressView().controlSize(.small) }
+            }
+            .padding(.horizontal, 8)
+            .frame(maxWidth: .infinity).frame(height: 32)
+            .background(hovering ? Color.primary.opacity(0.07) : .clear, in: RoundedRectangle(cornerRadius: 7))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .help("Ring \(target.name)")
+        .accessibilityLabel("Ring \(target.name)")
         .disabled(model.ringingID != nil)
     }
 }

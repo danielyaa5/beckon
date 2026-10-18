@@ -19,6 +19,12 @@ struct FindMyRingApp: App {
             Image(systemName: "iphone.radiowaves.left.and.right")
         }
         .menuBarExtraStyle(.window)
+        .commands {
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings…") { MainWindowController.shared.show(.settings) }
+                    .keyboardShortcut(",", modifiers: .command)
+            }
+        }
     }
 }
 
