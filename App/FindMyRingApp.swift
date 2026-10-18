@@ -6,7 +6,10 @@ struct FindMyRingApp: App {
 
     init() {
         // Before anything reads the settings: screenshots use made-up devices.
-        if Screenshots.active { SharedStore.demo = DemoData.store }
+        if Screenshots.active {
+            SharedStore.demo = Screenshots.signInPreview
+                ? SharedStore.Demo(config: SharedStore.Config(), history: []) : DemoData.store
+        }
     }
 
     var body: some Scene {
@@ -27,10 +30,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Task { await Screenshots.run() }
             return
         }
+        guard Installation.finishIfInstalled() else {
+            NSApp.terminate(nil)
+            return
+        }
+        AppUpdater.shared.start()
         DockPolicy.apply()
         let model = AppModel.shared
         Hotkeys.install()
         model.willAppear()
+        if !model.hasCredentials { MainWindowController.shared.show() }
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {

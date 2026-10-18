@@ -17,10 +17,13 @@ settings:
     DEVELOPMENT_TEAM: 4JWVY7832S
     SWIFT_VERSION: "6.0"
     CODE_SIGN_STYLE: Automatic
-    MARKETING_VERSION: "0.4.4"
-    CURRENT_PROJECT_VERSION: "19"
+    MARKETING_VERSION: "0.5.1"
+    CURRENT_PROJECT_VERSION: "21"
 
 packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.10.0
   FindMyRingKit:
     path: .
   # Global shortcut keys with a recorder (MIT, Sindre Sorhus).
@@ -41,6 +44,7 @@ targets:
     dependencies:
       - package: FindMyRingKit
         product: FindMyRingKit
+      - package: Sparkle
       - package: KeyboardShortcuts
       - target: RingWidget
         embed: true
@@ -53,6 +57,11 @@ targets:
         LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
         # Menu bar only; the window brings a Dock icon while it's open.
         LSUIElement: true
+        SUFeedURL: https://danielyaa5.github.io/beckon/appcast.xml
+        SUPublicEDKey: NskFLHd681m8zoCDJfs458H+J/Z+uNPNMKOBDx1hQTg=
+        SUEnableAutomaticChecks: true
+        SUAutomaticallyUpdate: false
+        SUSendProfileInfo: false
         CFBundleURLTypes:
           - CFBundleURLName: com.danielyakobian.findmy-ring
             CFBundleURLSchemes:

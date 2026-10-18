@@ -253,6 +253,7 @@ struct MenuPopover: View {
     private var footer: some View {
         VStack(spacing: 6) {
             Divider()
+            CheckForUpdatesButton()
             HStack(spacing: 8) {
                 Button("Open Beckon…") { MainWindowController.shared.show() }
                     .keyboardShortcut("o", modifiers: .command)
@@ -333,16 +334,18 @@ struct SignInForm: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Sign in with your Apple Account")
                 .font(.system(size: large ? 22 : 14, weight: .bold))
-            Text("Use your password. No code from your phone. It stays in this Mac's Keychain, and only this app and its widgets can read it.")
+            Text("Use your Apple Account email and regular password, not an app-specific password. Your password stays in this Mac's Keychain.")
                 .font(.system(size: large ? 13 : 11.5))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             TextField("Apple Account email", text: $email)
                 .textFieldStyle(.roundedBorder)
                 .textContentType(.username)
+                .disabled(model.refreshing)
             SecureField("Password", text: $password)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit(submit)
+                .disabled(model.refreshing)
             Button(action: submit) {
                 Text(model.refreshing ? "Signing in…" : "Sign in and load devices")
                     .frame(maxWidth: .infinity)
@@ -350,17 +353,26 @@ struct SignInForm: View {
             .buttonStyle(.borderedProminent)
             .tint(Color.ringFill)
             .controlSize(large ? .large : .regular)
-            .disabled(email.isEmpty || password.isEmpty || model.refreshing)
+            .disabled(email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || password.isEmpty || model.refreshing)
+            if !model.status.isEmpty {
+                Text(model.status)
+                    .font(.callout)
+                    .foregroundStyle(model.refreshing ? Color.secondary : Color.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .textSelection(.enabled)
+                    .accessibilityIdentifier("signInStatus")
+            }
         }
         .frame(maxWidth: large ? 420 : .infinity)
         .onAppear { email = model.appleID }
     }
 
     private func submit() {
-        guard !email.isEmpty, !password.isEmpty else { return }
+        guard !email.isEmpty, !password.isEmpty, !model.refreshing else { return }
         Task {
-            await model.signIn(appleID: email, password: password)
-            password = ""
+            if await model.signIn(appleID: email, password: password) {
+                password = ""
+            }
         }
     }
 }

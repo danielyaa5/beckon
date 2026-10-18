@@ -13,7 +13,10 @@ TEAM_ID="${TEAM_ID:-4JWVY7832S}"
 BUILD="release/build/$VERSION"
 ARCHIVE="$BUILD/FindMyRing.xcarchive"
 
-rm -rf "$BUILD"
+if [[ -e "$BUILD" ]]; then
+  echo "Build folder already exists: $BUILD. Use a new version or move it aside." >&2
+  exit 1
+fi
 mkdir -p "$BUILD"
 
 .tools/xcodegen/bin/xcodegen generate --spec project.yml --quiet
@@ -48,7 +51,10 @@ done
 
 APP="$BUILD/notarized/Beckon.app"
 echo "[4/4] Notarized. Gatekeeper check:"
-spctl -a -vv -t exec "$APP" || true
+spctl -a -vv -t exec "$APP"
 ditto -c -k --keepParent "$APP" "$BUILD/Beckon.zip"
 echo "DONE: $APP"
 echo "ZIP:  $BUILD/Beckon.zip"
+
+# Finder installer for first-time users; ZIP remains the Sparkle update payload.
+bash release/make-dmg.sh "$APP" "$BUILD/Beckon.dmg"

@@ -36,5 +36,15 @@
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>SUAutomaticallyUpdate</key>
+	<false/>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://danielyaa5.github.io/beckon/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>NskFLHd681m8zoCDJfs458H+J/Z+uNPNMKOBDx1hQTg=</string>
+	<key>SUSendProfileInfo</key>
+	<false/>
 </dict>
 </plist>

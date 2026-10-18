@@ -16,11 +16,13 @@ actor FindMyService {
     private var signingIn: Task<FindMyRing, Error>?
 
     func devices(appleID: String, password: String) async throws -> [FoundDevice] {
+        let usedCachedSession = client != nil && clientAppleID == appleID
+            && Date().timeIntervalSince(signedInAt) < Self.reuseFor
         let reused = try await signedIn(appleID: appleID, password: password, fresh: false)
         do {
             let list = try await reused.listDevices()
             // A dead session can come back as an empty list rather than an error.
-            if !list.isEmpty { return list }
+            if !list.isEmpty || !usedCachedSession { return list }
         } catch let error as RingError where error.kind == .server {}
         let fresh = try await signedIn(appleID: appleID, password: password, fresh: true)
         return try await fresh.listDevices()

@@ -11,10 +11,10 @@ and renamed Beckon in 0.4.1 (both 2026-10-16).
 
 ## Download
 
-**[Download Beckon for Mac](https://github.com/danielyaa5/beckon/releases/latest/download/Beckon.zip)**
+**[Download Beckon for Mac](https://github.com/danielyaa5/beckon/releases/latest/download/Beckon.dmg)**
 (macOS 14 or later, Apple silicon or Intel; signed and notarized by Apple).
 
-1. Open the zip and drag **Beckon** into Applications, then open it.
+1. Open **Beckon.dmg**. Drag **Beckon** onto **Applications** in the installer window, then open Beckon from Applications. The matching installer ejects when the installed app starts (if it is not busy).
 2. Click the Beckon icon in the menu bar and sign in with your Apple Account
    email and password. Apple checks the password before Beckon saves it, in
    your Mac's Keychain.
@@ -26,6 +26,23 @@ and renamed Beckon in 0.4.1 (both 2026-10-16).
 Every release is listed on the
 [Releases page](https://github.com/danielyaa5/beckon/releases). Read the
 "Unofficial" note below before you sign in.
+
+## Updates (0.5.1)
+
+Beckon uses [Sparkle](https://sparkle-project.org/) to check for signed updates.
+Choose **Check for Updates…** in the menu bar or Settings. Automatic checks can
+be disabled in Settings; installing an update requires the user's confirmation.
+Users on 0.4.4 or earlier must download and install 0.5.1 once.
+
+For a release, run `release/notarize.sh VERSION`, then
+`bash release/make-appcast.sh VERSION`. Sparkle 2.10.0's tools must be extracted
+into `.tools/sparkle`; the signing key lives in the login Keychain under the
+account `beckon`. Only its public key belongs in source control. Review the
+resulting `release/build/VERSION/feed/appcast.xml`, upload `Beckon.zip` and
+`Beckon.dmg` to the matching `vVERSION` GitHub release, then copy the feed to
+`docs/appcast.xml` and publish the site. Do not publish the feed before its ZIP
+exists. Increment both version fields in `project.yml` for every release.
+The DMG contains the stapled notarized app; the ZIP is the signed update payload.
 
 ## Screenshots
 

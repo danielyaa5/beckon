@@ -494,6 +494,7 @@ private struct SettingsPane: View {
             }
 
             Section {
+                UpdateSettings()
                 LabeledContent("Version", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")
             }
         }

@@ -19,9 +19,16 @@ enum Screenshots {
         return URL(fileURLWithPath: args[i + 1], isDirectory: true)
     }()
 
-    static var active: Bool { folder != nil }
+    // An isolated, interactive sign-in form for UI verification. Never reads
+    // saved accounts; use an invalid email to exercise validation without Apple.
+    static var signInPreview: Bool { CommandLine.arguments.contains("--signin-preview") }
+    static var active: Bool { folder != nil || signInPreview }
 
     static func run() async {
+        if signInPreview {
+            MainWindowController.shared.show()
+            return
+        }
         guard let folder else { return }
         NSApp.appearance = NSAppearance(named: .aqua)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)

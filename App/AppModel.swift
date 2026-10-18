@@ -160,36 +160,40 @@ final class AppModel: ObservableObject {
     /// Signs in with Apple first and saves the password only once Apple has
     /// accepted it, so a mistyped password never shows as "Signed in" and is
     /// never retried in the background.
-    func signIn(appleID raw: String, password: String) async {
+    func signIn(appleID raw: String, password: String) async -> Bool {
         let id = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !id.isEmpty, !password.isEmpty, !refreshing else { return }
+        guard !id.isEmpty, !password.isEmpty, !refreshing else { return false }
         guard id.contains("@"), id.contains(".") else {
             status = "Enter the email address of your Apple Account."
-            return
+            return false
         }
         refreshing = true
+        defer { refreshing = false }
         status = "Signing in…"
         await service.forget()
-        var accepted = false
         do {
-            _ = try await service.devices(appleID: id, password: password)
-            accepted = true
+            let found = try await service.devices(appleID: id, password: password)
+            try SharedStore.savePassword(password, appleID: id)
+            let devices = Self.cachedDevices(found)
+            commit {
+                $0.appleID = id
+                $0.devices = devices
+                $0.lastRefresh = .now
+            }
+            // The list was already fetched during sign-in, even if it is empty.
+            // Opening the signed-in view must not immediately fetch it again.
+            triedFirstLoad = true
+            refreshError = nil
+            status = devices.isEmpty ? "No ringable devices found." : ""
+            FindMyRingShortcuts.updateAppShortcutParameters()
+            return true
         } catch let error as RingError {
             status = error.message
         } catch {
             status = "Couldn't sign in: \(error.localizedDescription)"
         }
-        refreshing = false
-        guard accepted else { return }
-        do {
-            try SharedStore.savePassword(password, appleID: id)
-        } catch {
-            status = "Couldn't save the password to the Keychain."
-            return
-        }
-        commit { $0.appleID = id }
-        status = ""
-        await refresh()   // reuses the session just made; no second sign-in
+        await service.forget()
+        return false
     }
 
     /// Apple turned the saved password down: it was changed, or the account is
@@ -226,12 +230,7 @@ final class AppModel: ObservableObject {
         defer { refreshing = false }
         do {
             let found = try await service.devices(appleID: appleID, password: password)
-            // Only what ringing needs. Apple's reply also carries battery and
-            // location; none of it is kept (online is only for the order).
-            let devices = found.filter(\.canRing).map {
-                SharedStore.CachedDevice(id: $0.id, name: $0.name, model: $0.model,
-                                         deviceClass: $0.deviceClass, online: $0.isOnline)
-            }
+            let devices = Self.cachedDevices(found)
             // An empty or unreadable reply must not wipe a list that worked:
             // the menu and widgets would go blank until the next reload.
             if devices.isEmpty, !config.devices.isEmpty {
@@ -254,6 +253,14 @@ final class AppModel: ObservableObject {
             if error.kind == .badCredentials || error.kind == .accountLocked { rejectSavedPassword(error) }
         } catch {
             showRefreshError("Couldn't load devices: \(error.localizedDescription)")
+        }
+    }
+
+    private static func cachedDevices(_ found: [FoundDevice]) -> [SharedStore.CachedDevice] {
+        // Keep only the fields ringing needs, never location or battery data.
+        found.filter(\.canRing).map {
+            SharedStore.CachedDevice(id: $0.id, name: $0.name, model: $0.model,
+                                     deviceClass: $0.deviceClass, online: $0.isOnline)
         }
     }
 
