@@ -14,7 +14,7 @@ and renamed Beckon in 0.4.1 (both 2026-10-16).
 **[Download Beckon for Mac](https://github.com/danielyaa5/beckon/releases/latest/download/Beckon.dmg)**
 (macOS 14 or later, Apple silicon or Intel; signed and notarized by Apple).
 
-1. Open **Beckon.dmg**. Drag **Beckon** onto **Applications** in the installer window, then open Beckon from Applications. The matching installer ejects when the installed app starts (if it is not busy).
+1. Open **Beckon.dmg**. Drag **Beckon** onto **Applications** in the installer window, then open Beckon from Applications. When Beckon opens, it offers to move the downloaded DMG to Trash and ejects the installer disk. Closing the Finder window alone does not eject it.
 2. Click the Beckon icon in the menu bar and sign in with your Apple Account
    email and password. Apple checks the password before Beckon saves it, in
    your Mac's Keychain.

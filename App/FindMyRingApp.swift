@@ -40,6 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Hotkeys.install()
         model.willAppear()
         if !model.hasCredentials { MainWindowController.shared.show() }
+        Task { await Installation.offerCleanup() }
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
