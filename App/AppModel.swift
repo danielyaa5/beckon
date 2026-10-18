@@ -50,6 +50,12 @@ final class AppModel: ObservableObject {
 
     // MARK: Reading
 
+    func openAirTagsInFindMy() {
+        if !NSWorkspace.shared.open(URL(string: "findmy://items")!) {
+            status = "Couldn't open Find My. Open it from Applications and choose Items."
+        }
+    }
+
     var appleID: String { config.appleID ?? "" }
     var hasCredentials: Bool { !appleID.isEmpty && SharedStore.password(appleID: appleID) != nil }
     var favorites: [RingTarget] { config.favorites }

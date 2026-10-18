@@ -52,7 +52,13 @@ private struct Sidebar: View {
                 ForEach(model.groups, id: \.self) { group in
                     row(group, Self.symbol(group), .group(group), model.targets(in: .group(group)).count)
                 }
-                row("AirTags", "airtag", .airTags, model.config.airTags.count)
+                Button { model.openAirTagsInFindMy() } label: {
+                    Label("AirTags", systemImage: "airtag")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("Open Find My’s Items tab")
                 if !model.config.hiddenIDs.isEmpty {
                     row("Hidden", "eye.slash", .hidden, model.config.hiddenIDs.count)
                 }

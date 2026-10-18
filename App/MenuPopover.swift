@@ -177,9 +177,7 @@ struct MenuPopover: View {
     private var airTagsRow: some View {
         Button {
             windowAnchor.window?.orderOut(nil)
-            if !NSWorkspace.shared.open(URL(string: "findmy://items")!) {
-                model.status = "Couldn't open Find My. Open it from Applications and choose Items."
-            }
+            model.openAirTagsInFindMy()
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: "airtag")

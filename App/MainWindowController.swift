@@ -106,7 +106,7 @@ enum LinkHandler {
         case "palette":
             RingPalette.shared.show()
         case "airtags":
-            MainWindowController.shared.show(.airTags)
+            model.openAirTagsInFindMy()
         default:
             MainWindowController.shared.show()
         }

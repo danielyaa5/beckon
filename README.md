@@ -29,7 +29,7 @@ Every release is listed on the
 
 ## First launch (0.6.0)
 
-**Find your AirTags** in the menu bar opens the Items tab directly in Apple's
+**Find your AirTags** in the menu bar and **AirTags** in the sidebar open the Items tab directly in Apple's
 Find My app. This shortcut doesn't need Accessibility or Screen Recording.
 
 A short walkthrough covers signing in, starring favorites, adding the Ring and
