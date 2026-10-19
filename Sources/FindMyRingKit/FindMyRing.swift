@@ -60,7 +60,7 @@ public actor FindMyRing {
     private var queryParams: [URLQueryItem] = []
 
     public init(appleID: String) {
-        self.appleID = appleID
+        self.appleID = appleID.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let cfg = URLSessionConfiguration.ephemeral
         cfg.httpCookieAcceptPolicy = .always
         cfg.httpShouldSetCookies = true
@@ -226,7 +226,14 @@ public actor FindMyRing {
         if isAccountLocked(data) {
             throw RingError(.accountLocked, "Apple says this account is locked. Unlock it, then try again.")
         }
-        if code == 401 || serviceErrorCodes(data).contains("-20101") {
+        let codes = serviceErrorCodes(data)
+        if codes.contains("-20101") {
+            throw RingError(.badCredentials, "Apple did not accept that Apple Account and password.")
+        }
+        if code == 401 {
+            if let msg = serviceErrorMessage(data) {
+                throw RingError(.server, msg)
+            }
             throw RingError(.badCredentials, "Apple did not accept that Apple Account and password.")
         }
         switch code {
@@ -331,12 +338,18 @@ public actor FindMyRing {
         serviceErrorCodes(data).contains("-20209")
     }
 
-    /// The codes in Apple's `serviceErrors` list ("-20101" wrong password,
-    /// "-20209" locked).
     private func serviceErrorCodes(_ data: Data) -> [String] {
         guard let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
               let errors = obj["serviceErrors"] as? [[String: Any]] else { return [] }
         return errors.map { "\($0["code"] ?? "")" }
+    }
+
+    private func serviceErrorMessage(_ data: Data) -> String? {
+        guard let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
+              let errors = obj["serviceErrors"] as? [[String: Any]],
+              let msg = errors.first?["message"] as? String,
+              !msg.isEmpty else { return nil }
+        return msg
     }
 
     @discardableResult

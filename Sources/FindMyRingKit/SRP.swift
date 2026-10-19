@@ -56,7 +56,7 @@ struct SRPClient {
 
     /// Deterministic initializer for cross-checking against known vectors.
     init(username: String, privateEphemeral aBytes: Data) {
-        self.username = username
+        self.username = username.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         self.a = BigUInt(aBytes)
         self.A = SRPClient.g.power(a, modulus: SRPClient.N)
     }

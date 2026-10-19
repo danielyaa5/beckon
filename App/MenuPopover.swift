@@ -380,6 +380,7 @@ struct SignInForm: View {
             TextField("name@example.com", text: $email)
                 .textFieldStyle(.roundedBorder)
                 .textContentType(.username)
+                .autocorrectionDisabled()
                 .controlSize(large ? .large : .regular)
                 .disabled(model.refreshing)
             Text("Password").font(.system(size: 12, weight: .medium))

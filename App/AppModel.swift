@@ -167,7 +167,7 @@ final class AppModel: ObservableObject {
     /// accepted it, so a mistyped password never shows as "Signed in" and is
     /// never retried in the background.
     func signIn(appleID raw: String, password: String) async -> Bool {
-        let id = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let id = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !id.isEmpty, !password.isEmpty, !refreshing else { return false }
         guard id.contains("@"), id.contains(".") else {
             status = "Enter the email address of your Apple Account."
