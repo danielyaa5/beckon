@@ -3,12 +3,12 @@
     <channel>
         <title>Beckon</title>
         <item>
-            <title>0.6.7</title>
-            <pubDate>Sun, 18 Oct 2026 19:49:59 -0700</pubDate>
-            <sparkle:version>30</sparkle:version>
-            <sparkle:shortVersionString>0.6.7</sparkle:shortVersionString>
+            <title>0.7.0</title>
+            <pubDate>Tue, 20 Oct 2026 00:23:05 -0700</pubDate>
+            <sparkle:version>33</sparkle:version>
+            <sparkle:shortVersionString>0.7.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/danielyaa5/beckon/releases/download/v0.6.7/Beckon.zip" length="4865618" type="application/octet-stream" sparkle:edSignature="pD6RIByzYDuweJqkBfv02vfjVdAto4ae78wf1ncutNT7LhUC0FNomWq8GchwvcPQpeu6u5UdArnc1uGKaAZSCQ=="/>
+            <enclosure url="https://github.com/danielyaa5/beckon/releases/download/v0.7.0/Beckon.zip" length="4840321" type="application/octet-stream" sparkle:edSignature="MBQhHgOf26gGvWH9LcG8BMvxDETKOan/xAYBW+UDMPfR8K1zsyixbME68N6IHL5B07exxdLZXCkx4awUsZVVAg=="/>
         </item>
     </channel>
 </rss>

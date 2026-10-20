@@ -13,10 +13,9 @@ struct MenuPopover: View {
 
     private var results: [RingTarget] { Array(model.search(query).prefix(7)) }
 
-    /// Favorites, or the first devices while nothing is starred.
-    private var quickList: [RingTarget] {
-        let favs = model.favorites
-        return favs.isEmpty ? Array(model.config.visibleDevices.prefix(6).map(RingTarget.device)) : Array(favs.prefix(9))
+    private var nonFavorites: [RingTarget] {
+        let favIDs = Set(model.favorites.map(\.id))
+        return model.config.allTargets.filter { !favIDs.contains($0.id) && !model.isHidden($0) }
     }
 
     var body: some View {
@@ -26,7 +25,9 @@ struct MenuPopover: View {
             } else {
                 searchField
                 if query.isEmpty {
-                    quickSection
+                    favoritesSection
+                    otherDevicesSection
+                    emptyDevicesSection
                     airTagsRow
                     recentSection
                     hotkeyLine
@@ -40,7 +41,7 @@ struct MenuPopover: View {
             footer
         }
         .padding(10)
-        .frame(width: 340)
+        .frame(width: 360)
         .background(MenuWindowAnchor(view: windowAnchor))
         .onAppear {
             model.willAppear()
@@ -82,6 +83,14 @@ struct MenuPopover: View {
                 .keyboardShortcut("k", modifiers: .command)
                 .opacity(0)
                 .frame(width: 0, height: 0)
+            Button("Star") {
+                if results.indices.contains(selected) {
+                    model.toggleFavorite(results[selected])
+                }
+            }
+            .keyboardShortcut("s", modifiers: .command)
+            .opacity(0)
+            .frame(width: 0, height: 0)
         }
     }
 
@@ -92,29 +101,8 @@ struct MenuPopover: View {
             }
             ForEach(Array(results.enumerated()), id: \.element.id) { index, t in
                 let isSelected = index == selected
-                Button { ringResult(index) } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: t.kind.symbol).frame(width: 20)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(t.name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
-                            Text(model.isHidden(t) ? "Hidden · " + model.detail(t) : model.detail(t))
-                                .font(.system(size: 11.5)).opacity(0.85).lineLimit(1)
-                        }
-                        Spacer()
-                        if model.ringingID == t.id {
-                            ProgressView().controlSize(.small)
-                        } else if isSelected {
-                            Text("↩ Ring").font(.system(size: 12, weight: .semibold))
-                        }
-                    }
-                    .padding(.horizontal, 8)
-                    .frame(height: 44)
-                    .foregroundStyle(isSelected ? Color.white : Color.primary)
-                    .background(isSelected ? Color.ringFill : Color.clear, in: RoundedRectangle(cornerRadius: 8))
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .onHover { if $0 { selected = index } }
+                SearchResultRow(target: t, isSelected: isSelected, onRing: { ringResult(index) })
+                    .onHover { if $0 { selected = index } }
             }
         }
     }
@@ -130,23 +118,68 @@ struct MenuPopover: View {
         Task { await model.ring(t, source: "Menu") }
     }
 
-    // MARK: Favorites
+    // MARK: Favorites and Devices
 
-    private var quickSection: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack {
-                SectionLabel(text: model.favorites.isEmpty ? "Devices" : "Favorites")
-                Spacer()
-                if model.favorites.isEmpty {
-                    Text("Star some in the window").font(.system(size: 11)).foregroundStyle(.secondary)
+    @ViewBuilder private var favoritesSection: some View {
+        if !model.favorites.isEmpty {
+            VStack(alignment: .leading, spacing: 2) {
+                SectionLabel(text: "Favorites")
+                ForEach(Array(model.favorites.prefix(9).enumerated()), id: \.element.id) { index, t in
+                    QuickRow(target: t, number: index + 1)
                 }
             }
-            if model.config.devices.isEmpty {
+        }
+    }
+
+    @ViewBuilder private var otherDevicesSection: some View {
+        if !nonFavorites.isEmpty {
+            VStack(alignment: .leading, spacing: 2) {
+                if !model.favorites.isEmpty {
+                    Divider().padding(.vertical, 2)
+                }
+                HStack {
+                    SectionLabel(text: model.favorites.isEmpty ? "Devices" : "Other Devices")
+                    Spacer()
+                    if model.favorites.isEmpty {
+                        Text("Click ★ to favorite").font(.system(size: 11)).foregroundStyle(.secondary)
+                    }
+                }
+                ForEach(Array(nonFavorites.prefix(5)), id: \.id) { t in
+                    QuickRow(target: t, number: nil)
+                }
+                if nonFavorites.count > 5 {
+                    Button {
+                        openWindow(.all)
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text("Show more…")
+                                .font(.system(size: 11.5, weight: .medium))
+                                .foregroundStyle(Color.ringText)
+                            Spacer()
+                            Text("\(nonFavorites.count - 5) more")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.secondary)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 9, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 8)
+                        .frame(height: 28)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Open Beckon to see all devices")
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private var emptyDevicesSection: some View {
+        if model.favorites.isEmpty && nonFavorites.isEmpty {
+            VStack(alignment: .leading, spacing: 2) {
+                SectionLabel(text: "Devices")
                 Text(model.refreshing ? "Loading your devices…" : "No devices yet. Refresh below.")
                     .font(.system(size: 12)).foregroundStyle(.secondary).padding(8)
-            }
-            ForEach(Array(quickList.enumerated()), id: \.element.id) { index, t in
-                QuickRow(target: t, number: index + 1)
             }
         }
     }
@@ -281,39 +314,82 @@ private struct MenuWindowAnchor: NSViewRepresentable {
 }
 
 /// One favorite: click (or ⌘ + its number) rings it.
+/// One favorite: click (or ⌘ + its number) rings it; star icon toggles favorite.
 private struct QuickRow: View {
     @EnvironmentObject var model: AppModel
     let target: RingTarget
-    /// 1–9: its ⌘-number shortcut.
-    let number: Int
+    /// 1–9: its ⌘-number shortcut, if this is a numbered favorite.
+    var number: Int? = nil
     @State private var hovering = false
+    @State private var hoveringStar = false
+
+    private var isFavorite: Bool { model.isFavorite(target) }
 
     var body: some View {
-        Button { Task { await model.ring(target, source: "Menu") } } label: {
-            HStack(spacing: 10) {
-                Image(systemName: target.kind.symbol)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Color.ringText)
-                    .frame(width: 18)
-                Text(target.name).font(.system(size: 13)).lineLimit(1)
-                Spacer()
-                Text(model.detail(target)).font(.system(size: 11.5)).foregroundStyle(.secondary).lineLimit(1)
-                if model.ringingID == target.id {
-                    ProgressView().controlSize(.small).frame(width: 30)
-                } else {
-                    Keycap(text: "⌘\(number)").frame(minWidth: 30)
-                }
+        HStack(spacing: 4) {
+            Button {
+                model.toggleFavorite(target)
+            } label: {
+                Image(systemName: isFavorite ? "star.fill" : "star")
+                    .font(.system(size: 12))
+                    .foregroundStyle(starColor)
+                    .frame(width: 20, height: 26)
+                    .contentShape(Rectangle())
             }
-            .padding(.horizontal, 8)
-            .frame(height: 36)
-            .background(hovering ? Color.primary.opacity(0.07) : .clear, in: RoundedRectangle(cornerRadius: 7))
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+            .onHover { hoveringStar = $0 }
+            .help(isFavorite ? "Remove \(target.name) from favorites" : "Add \(target.name) to favorites")
+            .accessibilityLabel(isFavorite ? "Remove \(target.name) from favorites" : "Add \(target.name) to favorites")
+
+            Button { Task { await model.ring(target, source: "Menu") } } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: target.kind.symbol)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.ringText)
+                        .frame(width: 18)
+                    Text(target.name).font(.system(size: 13)).lineLimit(1).layoutPriority(1)
+                    Spacer(minLength: 6)
+                    Text(model.detail(target)).font(.system(size: 11.5)).foregroundStyle(.secondary).lineLimit(1)
+                    if model.ringingID == target.id {
+                        ProgressView().controlSize(.small).frame(width: 30)
+                    } else if let number {
+                        Keycap(text: "⌘\(number)").frame(minWidth: 30)
+                    }
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .modifier(OptionalShortcut(number: number))
+            .disabled(model.ringingID != nil)
         }
-        .buttonStyle(.plain)
-        .keyboardShortcut(KeyEquivalent(Character("\(number)")), modifiers: .command)
+        .padding(.horizontal, 6)
+        .frame(height: 36)
+        .background(hovering ? Color.primary.opacity(0.07) : .clear, in: RoundedRectangle(cornerRadius: 7))
         .onHover { hovering = $0 }
         .help("Ring \(target.name)")
-        .disabled(model.ringingID != nil)
+        .contextMenu {
+            Button(isFavorite ? "Remove from Favorites" : "Add to Favorites") {
+                model.toggleFavorite(target)
+            }
+        }
+    }
+
+    private var starColor: Color {
+        if isFavorite { return Color.yellow }
+        if hoveringStar { return Color.yellow.opacity(0.9) }
+        if hovering { return Color.secondary }
+        return Color.secondary.opacity(0.4)
+    }
+}
+
+private struct OptionalShortcut: ViewModifier {
+    let number: Int?
+    func body(content: Content) -> some View {
+        if let number {
+            content.keyboardShortcut(KeyEquivalent(Character("\(number)")), modifiers: .command)
+        } else {
+            content
+        }
     }
 }
 
@@ -340,7 +416,74 @@ private struct RecentRow: View {
         .onHover { hovering = $0 }
         .help("Ring \(target.name)")
         .accessibilityLabel("Ring \(target.name)")
+        .contextMenu {
+            Button(model.isFavorite(target) ? "Remove from Favorites" : "Add to Favorites") {
+                model.toggleFavorite(target)
+            }
+        }
         .disabled(model.ringingID != nil)
+    }
+}
+
+private struct SearchResultRow: View {
+    @EnvironmentObject var model: AppModel
+    let target: RingTarget
+    let isSelected: Bool
+    let onRing: () -> Void
+    @State private var hoveringStar = false
+
+    private var isFavorite: Bool { model.isFavorite(target) }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Button {
+                model.toggleFavorite(target)
+            } label: {
+                Image(systemName: isFavorite ? "star.fill" : "star")
+                    .font(.system(size: 12))
+                    .foregroundStyle(starColor)
+                    .frame(width: 20, height: 32)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .onHover { hoveringStar = $0 }
+            .help(isFavorite ? "Remove from favorites" : "Add to favorites")
+            .accessibilityLabel(isFavorite ? "Remove \(target.name) from favorites" : "Add \(target.name) to favorites")
+
+            Button(action: onRing) {
+                HStack(spacing: 8) {
+                    Image(systemName: target.kind.symbol).frame(width: 20)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(target.name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+                        Text(model.isHidden(target) ? "Hidden · " + model.detail(target) : model.detail(target))
+                            .font(.system(size: 11.5)).opacity(0.85).lineLimit(1)
+                    }
+                    Spacer()
+                    if model.ringingID == target.id {
+                        ProgressView().controlSize(.small)
+                    } else if isSelected {
+                        Text("↩ Ring").font(.system(size: 12, weight: .semibold))
+                    }
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 6)
+        .frame(height: 44)
+        .foregroundStyle(isSelected ? Color.white : Color.primary)
+        .background(isSelected ? Color.ringFill : Color.clear, in: RoundedRectangle(cornerRadius: 8))
+        .contextMenu {
+            Button(isFavorite ? "Remove from Favorites" : "Add to Favorites") {
+                model.toggleFavorite(target)
+            }
+        }
+    }
+
+    private var starColor: Color {
+        if isFavorite { return isSelected ? Color.white : Color.yellow }
+        if hoveringStar { return isSelected ? Color.white : Color.yellow.opacity(0.9) }
+        return isSelected ? Color.white.opacity(0.7) : Color.secondary.opacity(0.4)
     }
 }
 

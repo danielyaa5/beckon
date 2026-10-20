@@ -17,8 +17,8 @@ settings:
     DEVELOPMENT_TEAM: 4JWVY7832S
     SWIFT_VERSION: "6.0"
     CODE_SIGN_STYLE: Automatic
-    MARKETING_VERSION: "0.6.7"
-    CURRENT_PROJECT_VERSION: "30"
+    MARKETING_VERSION: "0.7.0"
+    CURRENT_PROJECT_VERSION: "33"
 
 packages:
   Sparkle:
@@ -82,7 +82,6 @@ targets:
     platform: macOS
     sources:
       - path: Widget
-      - path: Icon/WidgetIcon.icns
       - path: Shared
     dependencies:
       - package: FindMyRingKit
