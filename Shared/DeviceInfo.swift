@@ -2,7 +2,7 @@ import Foundation
 
 /// What sort of thing a device is, for its icon and grouping.
 enum DeviceKind: String, Codable, Sendable, CaseIterable {
-    case phone, tablet, mac, watch, headphones, earbuds, airTag, other
+    case phone, tablet, mac, watch, headphones, earbuds, other
 
     init(model: String, deviceClass: String) {
         let m = (model + " " + deviceClass).lowercased()
@@ -15,6 +15,12 @@ enum DeviceKind: String, Codable, Sendable, CaseIterable {
         else { self = .other }
     }
 
+    /// Ring history saved by versions that rang AirTags can say "airTag";
+    /// any kind this version doesn't know reads as `.other`.
+    init(from decoder: Decoder) throws {
+        self = DeviceKind(rawValue: try decoder.singleValueContainer().decode(String.self)) ?? .other
+    }
+
     var symbol: String {
         switch self {
         case .phone: "iphone"
@@ -23,7 +29,6 @@ enum DeviceKind: String, Codable, Sendable, CaseIterable {
         case .watch: "applewatch"
         case .headphones: "headphones"
         case .earbuds: "earbuds"
-        case .airTag: "airtag"
         case .other: "dot.radiowaves.left.and.right"
         }
     }
@@ -35,35 +40,25 @@ enum DeviceKind: String, Codable, Sendable, CaseIterable {
         case .mac: "Mac"
         case .headphones, .earbuds: "Audio"
         case .watch: "Watch"
-        case .airTag: "AirTags"
         case .other: "Other"
         }
     }
 }
 
-/// Anything the app can ring: a device (through iCloud) or an AirTag (by
-/// driving the Mac's Find My app).
+/// Anything the app can ring: a device, through iCloud.
 struct RingTarget: Identifiable, Hashable, Sendable {
-    static let airTagPrefix = "airtag:"
-
     let id: String
     let name: String
     let kind: DeviceKind
-    let device: SharedStore.CachedDevice?
-
-    var isAirTag: Bool { device == nil }
+    let device: SharedStore.CachedDevice
 
     static func device(_ d: SharedStore.CachedDevice) -> RingTarget {
         RingTarget(id: d.id, name: d.name, kind: d.kind, device: d)
     }
 
-    static func airTag(_ name: String) -> RingTarget {
-        RingTarget(id: airTagPrefix + name, name: name, kind: .airTag, device: nil)
-    }
-
     /// `beckon://ring/<name>?id=<id>`: the name keeps it readable, the id
-    /// (which the link handler reads first) keeps two devices with one name,
-    /// or a device named like an AirTag, from ringing the wrong one.
+    /// (which the link handler reads first) keeps two devices with one name
+    /// from ringing the wrong one.
     var link: URL {
         var c = URLComponents()
         c.scheme = "beckon"
@@ -84,9 +79,8 @@ enum Describe {
         return f.localizedString(for: date, relativeTo: now)
     }
 
-    /// What a target is: "iPhone 18 Pro", or "AirTag".
+    /// What a target is: "iPhone 18 Pro".
     static func detail(_ t: RingTarget) -> String {
-        guard let d = t.device else { return "AirTag" }
-        return d.model.isEmpty ? "Device" : d.model
+        t.device.model.isEmpty ? "Device" : t.device.model
     }
 }

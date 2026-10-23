@@ -3,7 +3,8 @@ import ServiceManagement
 import KeyboardShortcuts
 
 /// The main window, design 5's layout: a sidebar of device groups, device
-/// cards to ring and star, AirTags, hidden devices, ring history and settings.
+/// cards to ring and star, hidden devices, ring history and settings. The
+/// AirTags entry opens Find My's Items tab.
 struct MainWindow: View {
     @EnvironmentObject var model: AppModel
 
@@ -28,7 +29,6 @@ struct MainWindow: View {
         switch model.section {
         case .history: HistoryPane()
         case .settings: SettingsPane()
-        case .airTags: AirTagsPane()
         case .hidden: HiddenPane()
         default: DevicesPane(section: model.section)
         }
@@ -162,7 +162,7 @@ private struct DevicesPane: View {
     }
 }
 
-/// A device or AirTag as a card.
+/// A device as a card.
 struct DeviceCard: View {
     @EnvironmentObject var model: AppModel
     let target: RingTarget
@@ -172,12 +172,12 @@ struct DeviceCard: View {
             HStack(spacing: 10) {
                 Image(systemName: target.kind.symbol)
                     .font(.system(size: 17))
-                    .foregroundStyle(target.device?.online == false ? Color.secondary : Color.ringText)
+                    .foregroundStyle(target.device.online == false ? Color.secondary : Color.ringText)
                     .frame(width: 36, height: 36)
-                    .background((target.device?.online == false ? Color.secondary : Color.ringText).opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+                    .background((target.device.online == false ? Color.secondary : Color.ringText).opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
                 VStack(alignment: .leading, spacing: 1) {
                     Text(target.name).font(.system(size: 13.5, weight: .bold)).lineLimit(1)
-                    Text(target.device?.model ?? "AirTag").font(.system(size: 11.5)).foregroundStyle(.secondary).lineLimit(1)
+                    Text(target.device.model).font(.system(size: 11.5)).foregroundStyle(.secondary).lineLimit(1)
                 }
                 Spacer(minLength: 4)
                 StarButton(target: target)
@@ -185,9 +185,6 @@ struct DeviceCard: View {
 
             HStack(spacing: 8) {
                 DeviceAvailabilityBadge(target: target)
-                if target.isAirTag {
-                    Text("Rings over Bluetooth from this Mac").font(.system(size: 11.5)).foregroundStyle(.secondary).lineLimit(1)
-                }
                 Spacer(minLength: 4)
                 MoreMenu(target: target)
                 RingButton(target: target)
@@ -208,7 +205,7 @@ private struct DeviceRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: target.kind.symbol)
-                .foregroundStyle(target.device?.online == false ? Color.secondary : Color.ringText)
+                .foregroundStyle(target.device.online == false ? Color.secondary : Color.ringText)
                 .frame(width: 24)
             VStack(alignment: .leading, spacing: 1) {
                 Text(target.name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
@@ -230,7 +227,7 @@ private struct DeviceAvailabilityBadge: View {
     let target: RingTarget
 
     var body: some View {
-        if target.device?.online == false {
+        if target.device.online == false {
             Label("Offline at last reload", systemImage: "wifi.slash")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.secondary)
@@ -287,12 +284,8 @@ private struct MoreMenu: View {
     var body: some View {
         Menu {
             Button("Use for the shortcut key") { model.setHotkeyTarget(target) }
-            if target.device != nil {
-                Button(model.isHidden(target) ? "Show in the menu and widgets" : "Hide from the menu and widgets") {
-                    model.setHidden(target, !model.isHidden(target))
-                }
-            } else {
-                Button("Remove from the list", role: .destructive) { model.removeAirTag(target.name) }
+            Button(model.isHidden(target) ? "Show in the menu and widgets" : "Hide from the menu and widgets") {
+                model.setHidden(target, !model.isHidden(target))
             }
             Button("Copy link") {
                 NSPasteboard.general.clearContents()
@@ -305,79 +298,6 @@ private struct MoreMenu: View {
         .menuIndicator(.hidden)
         .fixedSize()
         .accessibilityLabel("More for \(target.name)")
-    }
-}
-
-// MARK: AirTags
-
-private struct AirTagsPane: View {
-    @EnvironmentObject var model: AppModel
-    @State private var newName = ""
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            PaneHeader(title: "AirTags", subtitle: "Rung from this Mac over Bluetooth, so they have to be nearby") {
-                Button {
-                    Task { await model.findAirTags() }
-                } label: {
-                    Label(model.findingAirTags ? "Reading Find My…" : "Find AirTags in Find My", systemImage: "magnifyingglass")
-                }
-                .disabled(model.findingAirTags || !model.airTagPermissionsOK)
-            }
-            if !model.airTagPermissionsOK { PermissionsBanner() }
-            if model.config.airTags.isEmpty {
-                EmptyNote(text: "Beckon reads your AirTags' names from the Find My app's Items list. Find My opens for a moment, then hides.")
-            } else {
-                ScrollView {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 236), spacing: 12)], spacing: 12) {
-                        ForEach(model.targets(in: .airTags)) { DeviceCard(target: $0) }
-                    }
-                }
-            }
-            HStack {
-                TextField("Add one by name, as Find My shows it", text: $newName)
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit(add)
-                    .frame(maxWidth: 360)
-                Button("Add", action: add).disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
-            }
-            if !model.status.isEmpty { StatusFooter() }
-        }
-        .padding(20)
-        .task { await model.findAirTagsIfNeeded() }
-    }
-
-    private func add() {
-        model.addAirTag(newName)
-        newName = ""
-    }
-}
-
-private struct PermissionsBanner: View {
-    @EnvironmentObject var model: AppModel
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-            VStack(alignment: .leading, spacing: 8) {
-                Text("AirTags need two permissions").font(.system(size: 13, weight: .semibold))
-                Text("Accessibility lets Beckon press Find My's buttons; Screen Recording lets it read Find My's window. Switch Beckon on in each. After Screen Recording, macOS asks to quit and reopen the app: choose Quit & Reopen, then come back here.")
-                    .font(.system(size: 12)).foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                HStack {
-                    if !FindMyAutomator.hasAccessibility {
-                        Button("Allow Accessibility") { model.requestAccessibility() }
-                    }
-                    if !FindMyAutomator.hasScreenRecording {
-                        Button("Allow Screen Recording") { model.requestScreenRecording() }
-                    }
-                    Button("Check again") { model.refreshPermissions() }
-                }
-            }
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
     }
 }
 
@@ -396,7 +316,7 @@ private struct HiddenPane: View {
                             Image(systemName: t.kind.symbol).frame(width: 24).foregroundStyle(.secondary)
                             VStack(alignment: .leading, spacing: 1) {
                                 Text(t.name).font(.system(size: 13, weight: .semibold))
-                                Text(t.device?.model ?? "").font(.system(size: 11.5)).foregroundStyle(.secondary)
+                                Text(t.device.model).font(.system(size: 11.5)).foregroundStyle(.secondary)
                             }
                             Spacer()
                             Button("Show") { model.setHidden(t, false) }
@@ -488,7 +408,7 @@ private struct SettingsPane: View {
                     }
                 }
                 KeyboardShortcuts.Recorder("Open the ring palette:", name: .openPalette)
-                Text("The palette searches every device and AirTag: type a few letters and press Return.")
+                Text("The palette searches every device: type a few letters and press Return.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
 
@@ -573,7 +493,7 @@ private struct StatusFooter: View {
     @EnvironmentObject var model: AppModel
     var body: some View {
         HStack(spacing: 6) {
-            if model.ringingID != nil || model.refreshing || model.findingAirTags { ProgressView().controlSize(.small) }
+            if model.ringingID != nil || model.refreshing { ProgressView().controlSize(.small) }
             Text(model.status).font(.system(size: 12)).foregroundStyle(.secondary)
         }
     }

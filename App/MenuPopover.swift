@@ -206,7 +206,8 @@ struct MenuPopover: View {
         }
     }
 
-    /// AirTags open directly in Find My, without Beckon scanning the window.
+    /// AirTags open in Find My's Items tab: Beckon can't ring them, since
+    /// Apple's web Find My doesn't reach items.
     private var airTagsRow: some View {
         Button {
             windowAnchor.window?.orderOut(nil)

@@ -75,21 +75,15 @@ extension RingState {
     var fill: Color { self == .sent ? Color(red: 0.16, green: 0.6, blue: 0.3) : .ringFill }
 }
 
-/// Rings from the widget: devices directly (an App Intent in the widget's
-/// own process), AirTags through a beckon:// link, because only the app
-/// can drive the Find My app.
+/// Rings from the widget directly: an App Intent in the widget's own process.
 struct WidgetRingButton<Label: View>: View {
     let target: RingTarget
     @ViewBuilder let label: Label
 
     var body: some View {
         #if WIDGET_EXTENSION
-        if target.isAirTag {
-            Link(destination: target.link) { label }
-        } else {
-            Button(intent: RingDeviceIntent(deviceID: target.id, deviceName: target.name)) { label }
-                .buttonStyle(.plain)
-        }
+        Button(intent: RingDeviceIntent(deviceID: target.id, deviceName: target.name)) { label }
+            .buttonStyle(.plain)
         #else
         // The app draws these views only for screenshots.
         label
@@ -180,18 +174,11 @@ struct FavoritesView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .containerBackground(.background, for: .widget)
-        .widgetURL(tapURL)
+        .widgetURL(URL(string: "beckon://open"))
     }
 
     private var hero: RingTarget? {
         entry.favorites.first { $0.id == entry.hotkeyTargetID } ?? entry.favorites.first
-    }
-
-    /// The small size ignores Link, so a tap anywhere is its only action:
-    /// for an AirTag hero that tap rings it through the app.
-    private var tapURL: URL? {
-        if family == .systemSmall, entry.signedIn, let hero, hero.isAirTag { return hero.link }
-        return URL(string: "beckon://open")
     }
 
     /// Design 3's small widget: one device, big, with the shortcut key.

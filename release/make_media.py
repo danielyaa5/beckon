@@ -48,7 +48,6 @@ def save_png(im, name, width=None):
 
 # Screenshots (2x captures, kept sharp but not huge).
 save_png(load("window-all"), "screenshot-window.png", 1600)
-save_png(load("window-airtags"), "screenshot-airtags.png", 1600)
 save_png(load("menu"), "screenshot-menu.png", 700)
 save_png(load("palette-air"), "screenshot-palette.png", 1100)
 

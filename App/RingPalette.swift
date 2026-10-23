@@ -89,7 +89,7 @@ struct PaletteView: View {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 20, weight: .medium))
                     .foregroundStyle(.secondary)
-                TextField("Ring a device or AirTag", text: $query)
+                TextField("Ring a device", text: $query)
                     .textFieldStyle(.plain)
                     .font(.system(size: 22))
                     .focused($focused)

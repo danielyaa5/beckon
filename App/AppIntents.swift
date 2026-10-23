@@ -1,6 +1,6 @@
 import AppIntents
 
-/// A device or AirTag, as Shortcuts, Spotlight and Siri see it.
+/// A device, as Shortcuts, Spotlight and Siri see it.
 struct DeviceEntity: AppEntity {
     static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Device")
     static let defaultQuery = DeviceQuery()
@@ -13,7 +13,7 @@ struct DeviceEntity: AppEntity {
     init(_ t: RingTarget) {
         id = t.id
         name = t.name
-        detail = t.isAirTag ? "AirTag" : (t.device?.model ?? "")
+        detail = t.device.model
         symbol = t.kind.symbol
     }
 
@@ -43,10 +43,10 @@ struct DeviceQuery: EntityStringQuery {
     }
 }
 
-/// "Ring a Device": runs in the app, so it can ring AirTags too.
+/// "Ring a Device": runs in the app, which shows the on-screen confirmation.
 struct RingDeviceShortcut: AppIntent {
     static let title: LocalizedStringResource = "Ring a Device"
-    static let description = IntentDescription("Plays a sound on one of your Apple devices, or on an AirTag near this Mac.")
+    static let description = IntentDescription("Plays a sound on one of your Apple devices.")
 
     @Parameter(title: "Device")
     var device: DeviceEntity

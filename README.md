@@ -1,6 +1,6 @@
 # Beckon
 
-A small macOS (and, later, iOS) app that rings your Apple devices and AirTags
+A small macOS (and, later, iOS) app that rings your Apple devices
 through Find My — one tap, one key or one word to make a misplaced iPhone play a
 sound, even on silent. Built 2026-10-15 as "Find My Ring"; redesigned in 0.3.0
 and renamed Beckon in 0.4.1 (both 2026-10-16).
@@ -20,8 +20,6 @@ and renamed Beckon in 0.4.1 (both 2026-10-16).
    your Mac's Keychain.
 3. Star the devices you ring most, and add the **Ring** widget from the
    desktop's Edit Widgets.
-4. For AirTags, allow Beckon under System Settings › Privacy & Security ›
-   **Accessibility** and **Screen Recording** (only needed for AirTags).
 
 Every release is listed on the
 [Releases page](https://github.com/danielyaa5/beckon/releases). Read the
@@ -29,8 +27,8 @@ Every release is listed on the
 
 ## First launch (0.6.0)
 
-**Find your AirTags** in the menu bar and **AirTags** in the sidebar open the Items tab directly in Apple's
-Find My app. This shortcut doesn't need Accessibility or Screen Recording.
+**Find your AirTags** in the menu bar and **AirTags** in the sidebar open the
+Items tab in Apple's Find My app (see "AirTags" below).
 
 A short walkthrough covers signing in, starring favorites, adding the Ring and
 Last rings desktop widgets, keyboard shortcuts, and opening AirTags in Find My. Skip it
@@ -83,12 +81,12 @@ of them (see "Screenshots and the website" below).
   favorite from anywhere, with a "Ringing…" confirmation on screen. Both keys
   are changed in Settings (KeyboardShortcuts, no Accessibility needed).
 - **App window** (design 5's layout): a sidebar of device groups, device cards
-  to ring and star, AirTags, hidden devices, ring history and Settings. Like NordVPN, the app lives only in the menu bar
+  to ring and star, hidden devices, ring history and Settings, plus an AirTags
+  entry that opens Find My's Items tab. Like NordVPN, the app lives only in the menu bar
   with no Dock icon; the window brings a Dock icon while it's open (or always,
   if Settings says so).
 - **Widgets**: "Ring" (favorites; small = one device with its shortcut key) and
-  "Last rings" (tap to ring again). AirTag buttons in widgets open the app
-  through a link, because only the app can drive Find My. After a tap the
+  "Last rings" (tap to ring again). After a tap the
   button says "Sending…" while the widget signs in and sends the ring, then
   "Sent" (green) for 10 seconds or "Didn't ring" for 30 (0.4.2; "Sending…"
   since 0.4.4). macOS doesn't redraw a widget while its button's intent is
@@ -102,9 +100,10 @@ of them (see "Screenshots and the website" below).
   `invalidatableContent()` to the button labels: in 0.4.2 it made macOS treat
   clicks on the button as clicks on the widget's background ("Launching from
   widgetURL" in the log), which opened the app instead of ringing (0.4.3).
-- **Shortcuts, Spotlight and Siri**: "Ring a Device" (AirTags included), with
+- **Shortcuts, Spotlight and Siri**: "Ring a Device", with
   phrases like "Ring Moreno 18 Pro with Beckon".
-- **Links**: `beckon://ring/<name>`, `beckon://palette`, `beckon://open`, for
+- **Links**: `beckon://ring/<name>`, `beckon://palette`, `beckon://open`
+  (`beckon://airtags` opens Find My's Items tab), for
   Raycast, Alfred, Stream Deck or a bookmark. Links from before the rename
   (`findmyring://…`) still work.
 - **Hide devices** you never ring (old Macs) from the menu, palette and widgets.
@@ -146,65 +145,18 @@ Apple emails you a confirmation after every ring.
 
 ## AirTags
 
-AirTags can't be rung through iCloud: Apple's web Find My doesn't support items
-at all, and an AirTag has no internet connection — the Find My app plays its
-sound over **Bluetooth**. So for AirTags the app drives the Mac's own Find My
-app (`App/FindMyAutomator.swift`):
+Beckon doesn't ring AirTags. Apple's web Find My, which Beckon uses, has no
+items at all, and an AirTag has no internet connection: only the Find My app
+plays its sound, over Bluetooth. **Find your AirTags** in the menu, **AirTags**
+in the window's sidebar and `beckon://airtags` open Find My's Items tab, where
+you pick the AirTag and press Play Sound.
 
-1. open Find My and switch to Items through its View menu (Accessibility);
-2. read the window with ScreenCaptureKit + Vision text recognition (Find My
-   doesn't expose its window contents to Accessibility on macOS 26+);
-3. find the AirTag's row by name and wait until the list stops moving (a click
-   on a list that is still gliding after a scroll only stops it), then click it;
-4. find the play button: on macOS 27 the clicked row expands in place (place,
-   time, then **Directions** and a speaker button labelled just **Play**, which
-   can sit below the window's edge, so the list is nudged up if needed); older
-   Find My hangs a card with **Play Sound** off the map pin, which is clicked
-   only when no expanded row appears. The card counts only when, of the known
-   item names above the button, the nearest is this item, so another item's
-   row or a map label never qualifies;
-5. click Play Sound (its label, then the icon above it if nothing changed) and
-   check Find My took it ("Stop Sound", "Playing" or "Pending", or the text
-   around the button changed); otherwise report that nothing was rung;
-6. hide Find My again and put the pointer back.
-
-Every synthesized click or scroll first checks that Find My is still the front
-app and stops otherwise, so switching apps mid-way never sends clicks into
-another app. A scan and a ring never run at the same time, and text recognition
-runs off the main thread so the menu stays responsive.
-
-**Finding your AirTags** (0.2.5): iCloud's device list has no items, so the
-names come from the same window. "Find AirTags in Find My" (also run once by
-itself the first time the AirTags section opens empty) scrolls the Items list
-from the top, OCR-ing a page at a time, and adds every new name. Each row is a
-name over a "place • time" line; a name only counts when that line sits right
-under it, so a row cut off at a page edge is read on the next page. The People /
-Devices / Items (and, on macOS 27, Me) pills mark the sidebar's edges, in the
-41 languages of findmy-cli's table, and when they're missing (the sidebar is
-hidden) nothing is read, since the text would be map labels. On macOS 27 item
-names start about 58 pt from the window's edge, so the text column begins at
-50 pt (findmy-cli's 60 pt cut read nothing there). Verified 2026-10-16 on the
-owner's Find My: all 18 items, every name exact. Names are matched exactly, or
-one character off for names of five or more characters when no other known item
-is as close, because OCR can read the same label differently between captures
-(findmy-cli's alias list has "GSXBR Keys" for "GSX8R Keys") while "Bag 1" must
-never ring "Bag 2".
-
-Diagnostics are off by default. When a scan reads nothing or a ring fails, the
-text Find My showed (item names and places included) can be saved to
-`~/Library/Logs/Beckon/` after
-`defaults write com.danielyakobian.findmy-ring AirTagDiagnostics -bool YES`.
-
-Limits: the AirTag must be within Bluetooth range of the Mac; the Mac must be
-awake and unlocked; it needs **Accessibility** and **Screen Recording** for
-Beckon; Find My shows for a moment; and it can break when Apple changes
-Find My's layout. It lives in the menu bar only — the sandboxed widget can't
-drive another app. A name can still be typed in by hand (as Find My shows
-it), and AirTags can be starred into Favorites alongside devices.
-
-The sequence, its constants and the Items-list rules are ported from the `ring`
-and `items` commands of [findmy-cli](https://github.com/omarshahine/findmy-cli)
-(MIT, Omar Shahine).
+Versions up to 0.7.0 rang AirTags by driving the Find My app with
+Accessibility, Screen Recording and text recognition; that code is gone, along
+with Beckon's need for those two permissions. AirTag names, favorites and
+rings that those versions saved are ignored and dropped at the next save. You
+can switch Beckon off again under System Settings › Privacy & Security ›
+Accessibility and Screen Recording.
 
 ## Layout
 
@@ -213,7 +165,7 @@ and `items` commands of [findmy-cli](https://github.com/omarshahine/findmy-cli)
 | `Sources/FindMyRingKit/` | the shared, platform-agnostic kit: `SRP.swift` (the GSA SRP-6a port, verified against the Python `srp` library), `FindMyRing.swift` (sign-in + Find My calls), `Keychain.swift`, `Crypto.swift`, `Models.swift` |
 | `Sources/ringcli/` | a command-line tool to test the kit against a real account |
 | `Tests/` | SRP cross-check vectors (Python `srp` → Swift must match) |
-| `App/` | the macOS app: `MenuPopover` (menu bar), `RingPalette` + `RingHUD` (palette, on-screen confirmation), `MainWindow` + `MainWindowController` (window, Dock behavior, links), `AppModel`, `FindMyService` (iCloud session), `Hotkeys`, `AppIntents` (Shortcuts/Siri); `FindMyAutomator.swift` rings and finds AirTags through the Find My app; `Screenshots.swift` is the `--screenshots` mode |
+| `App/` | the macOS app: `MenuPopover` (menu bar), `RingPalette` + `RingHUD` (palette, on-screen confirmation), `MainWindow` + `MainWindowController` (window, Dock behavior, links), `AppModel`, `FindMyService` (iCloud session), `Hotkeys`, `AppIntents` (Shortcuts/Siri); `Screenshots.swift` is the `--screenshots` mode |
 | `release/notarize.sh` | Developer ID archive → notarize → staple → zip (signing via Xcode's account) |
 | `release/screenshots.sh`, `release/make_media.py` | rebuild the README and website images and demo |
 | `docs/` | the GitHub Pages site and the README images |
@@ -317,14 +269,8 @@ Keychain group are registered automatically by `-allowProvisioningUpdates`.
   Icon Composer's `ictool <file.icon> --export-image --platform macOS
   --rendition Default --width 512 --height 512 --scale 1 --output-file x.png`.
 - ✅ Developer ID signed + notarized via `release/notarize.sh` (0.1.0 to 0.4.4).
-- ✅ Favorites: star devices and AirTags to pin them at the top of the menu;
-  starred devices are also what the widget shows (AirTags stay menu-only).
-- ✅ AirTags, verified on macOS 27 on 2026-10-16: the scan found all 18 of the
-  owner's items (0.3.2), and 0.3.4 rang "Organizer" in 13 s from a
-  `findmyring://ring/Organizer` link; Find My's own log showed "Play Sound
-  button pressed … play sound action succeeded". 0.3.2 and 0.3.3 failed it:
-  the row was clicked while the list was still gliding, then the expanded
-  row's button reads just "Play".
+- ✅ Favorites: star devices to pin them at the top of the menu; starred
+  devices are also what the widget shows.
 - ✅ Layout and robustness (0.3.4–0.3.6), checked with window captures
   (`screencapture -x -o -l <CGWindowID>`; find IDs with
   `CGWindowListCopyWindowInfo`):
@@ -340,8 +286,7 @@ Keychain group are registered automatically by `-allowProvisioningUpdates`.
   - Offline devices sort after online ones in the menu, palette and window.
   - A device-list reply without `content` is an error, and an empty list never
     replaces a saved one; automatic reloads pause 30 minutes after a server or
-    network error; widget AirTag links carry the device id; the small widget
-    rings an AirTag hero through `widgetURL`; `history.json` writes are
+    network error; `history.json` writes are
     coordinated (`NSFileCoordinator`) between the app and the widget.
 - ✅ Renamed Beckon (0.4.1): the app's name, menu and window texts, Siri
   phrases, widget titles and links (`beckon://`). Everything that identifies

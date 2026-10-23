@@ -80,10 +80,10 @@ enum DockPolicy {
     }
 }
 
-/// `beckon://` links, for Raycast, Alfred, Stream Deck, bookmarks and the
-/// widgets' AirTag buttons:
+/// `beckon://` links, for Raycast, Alfred, Stream Deck and bookmarks:
 ///   beckon://ring/<name or id>   rings it
 ///   beckon://palette             opens the ring palette
+///   beckon://airtags             opens Find My's Items tab
 ///   beckon://open                opens the window
 @MainActor
 enum LinkHandler {

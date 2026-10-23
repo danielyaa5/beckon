@@ -5,7 +5,7 @@ import os
 
 /// Sections of the main window's sidebar.
 enum WindowSection: Hashable {
-    case all, favorites, group(String), airTags, hidden, history, settings
+    case all, favorites, group(String), hidden, history, settings
 }
 
 @MainActor
@@ -22,14 +22,10 @@ final class AppModel: ObservableObject {
     @Published private(set) var refreshing = false
     /// The target being rung right now.
     @Published private(set) var ringingID: String?
-    @Published private(set) var findingAirTags = false
-    @Published private(set) var airTagPermissionsOK: Bool
     /// What the main window shows.
     @Published var section: WindowSection = .all
 
     private let service = FindMyService()
-    private let automator = FindMyAutomator()
-    private var triedAutoFind = false
     /// The one automatic list load (when none is saved) was tried this launch.
     private var triedFirstLoad = false
     /// What a failed reload put on the status line, so the next good reload
@@ -41,7 +37,6 @@ final class AppModel: ObservableObject {
         SharedStore.prepare()
         config = SharedStore.load()
         history = SharedStore.history()
-        airTagPermissionsOK = SharedStore.demo != nil || (FindMyAutomator.hasAccessibility && FindMyAutomator.hasScreenRecording)
         // Re-save in the current format: since 0.4 the device list keeps no
         // battery, location or place, so this drops any an older version saved.
         if !config.devices.isEmpty { SharedStore.save(config) }
@@ -50,6 +45,8 @@ final class AppModel: ObservableObject {
 
     // MARK: Reading
 
+    /// Beckon doesn't ring AirTags (Apple's web Find My can't), so the AirTag
+    /// entries in the menu and window open Find My's Items tab instead.
     func openAirTagsInFindMy() {
         if !NSWorkspace.shared.open(URL(string: "findmy://items")!) {
             status = "Couldn't open Find My. Open it from Applications and choose Items."
@@ -66,7 +63,7 @@ final class AppModel: ObservableObject {
             ?? "Device list not loaded yet"
     }
 
-    /// What a target is ("iPhone 18 Pro", "AirTag"): the app keeps no
+    /// What a target is ("iPhone 18 Pro"): the app keeps no
     /// battery, location or place to show.
     func detail(_ t: RingTarget) -> String { Describe.detail(t) }
     func isFavorite(_ t: RingTarget) -> Bool { config.isFavorite(t) }
@@ -79,14 +76,13 @@ final class AppModel: ObservableObject {
         let all = config.allTargets
         let matches = q.isEmpty ? all : all.filter {
             $0.name.lowercased().contains(q)
-                || ($0.device?.model.lowercased().contains(q) ?? false)
-                || ($0.isAirTag && "airtag".hasPrefix(q))
+                || $0.device.model.lowercased().contains(q)
         }
         return matches.enumerated().sorted { a, b in
             let ka = (isFavorite(a.element) ? 0 : 1, isHidden(a.element) ? 1 : 0,
-                      a.element.device?.online == false ? 1 : 0, a.offset)
+                      a.element.device.online == false ? 1 : 0, a.offset)
             let kb = (isFavorite(b.element) ? 0 : 1, isHidden(b.element) ? 1 : 0,
-                      b.element.device?.online == false ? 1 : 0, b.offset)
+                      b.element.device.online == false ? 1 : 0, b.offset)
             return ka < kb
         }.map(\.element)
     }
@@ -96,7 +92,6 @@ final class AppModel: ObservableObject {
         case .all: Self.onlineFirst(config.visibleDevices).map(RingTarget.device)
         case .favorites: favorites
         case .group(let g): Self.onlineFirst(config.visibleDevices.filter { $0.kind.group == g }).map(RingTarget.device)
-        case .airTags: config.airTags.map(RingTarget.airTag)
         case .hidden: config.devices.filter { config.hiddenIDs.contains($0.id) }.map(RingTarget.device)
         case .history, .settings: []
         }
@@ -124,22 +119,13 @@ final class AppModel: ObservableObject {
 
     func toggleFavorite(_ t: RingTarget) {
         commit { c in
-            if t.isAirTag {
-                if let i = c.favoriteAirTags.firstIndex(of: t.name) {
-                    c.favoriteAirTags.remove(at: i)
-                } else {
-                    c.favoriteAirTags.append(t.name)
-                }
-            } else {
-                var favs = Set(c.favoriteIDs)
-                if favs.contains(t.id) { favs.remove(t.id) } else { favs.insert(t.id) }
-                c.favoriteIDs = c.devices.map(\.id).filter(favs.contains)
-            }
+            var favs = Set(c.favoriteIDs)
+            if favs.contains(t.id) { favs.remove(t.id) } else { favs.insert(t.id) }
+            c.favoriteIDs = c.devices.map(\.id).filter(favs.contains)
         }
     }
 
     func setHidden(_ t: RingTarget, _ hidden: Bool) {
-        guard !t.isAirTag else { return }
         commit { c in
             c.hiddenIDs.removeAll { $0 == t.id }
             if hidden { c.hiddenIDs.append(t.id) }
@@ -280,7 +266,6 @@ final class AppModel: ObservableObject {
     /// only to ring. The one exception is a first load when no list is saved.
     func willAppear() {
         reloadHistory()
-        refreshPermissions()
         guard hasCredentials, !refreshing, config.devices.isEmpty, !triedFirstLoad else { return }
         triedFirstLoad = true
         Task { await refresh() }
@@ -288,8 +273,7 @@ final class AppModel: ObservableObject {
 
     // MARK: Ringing
 
-    /// Rings one device or AirTag and records it. Devices go through iCloud;
-    /// AirTags through the Find My app, which opens for a moment.
+    /// Rings one device through iCloud and records it.
     @discardableResult
     func ring(_ t: RingTarget, source: String) async -> Bool {
         guard ringingID == nil else {
@@ -298,33 +282,24 @@ final class AppModel: ObservableObject {
         }
         ringingID = t.id
         defer { ringingID = nil }
-        status = t.isAirTag ? "Ringing \(t.name)… Find My opens for a moment." : "Ringing \(t.name)…"
+        status = "Ringing \(t.name)…"
 
         var problem: String?
-        if let d = t.device {
-            if let password = SharedStore.password(appleID: appleID) {
-                do {
-                    try await service.ring(deviceID: d.id, appleID: appleID, password: password)
-                } catch let error as RingError {
-                    problem = error.message
-                    if error.kind == .badCredentials || error.kind == .accountLocked { rejectSavedPassword(error) }
-                } catch {
-                    problem = error.localizedDescription
-                }
-            } else {
-                problem = "Sign in first."
-            }
-        } else {
-            refreshPermissions()
+        if let password = SharedStore.password(appleID: appleID) {
             do {
-                try await automator.ring(itemName: t.name, otherNames: config.airTags)
+                try await service.ring(deviceID: t.device.id, appleID: appleID, password: password)
+            } catch let error as RingError {
+                problem = error.message
+                if error.kind == .badCredentials || error.kind == .accountLocked { rejectSavedPassword(error) }
             } catch {
                 problem = error.localizedDescription
             }
+        } else {
+            problem = "Sign in first."
         }
 
         let ok = problem == nil
-        status = problem ?? (t.isAirTag ? "Rang \(t.name)." : "Rang \(t.name). Apple will email you.")
+        status = problem ?? "Rang \(t.name). Apple will email you."
         SharedStore.record(.init(
             target: t.id, name: t.name, kind: t.kind, date: .now, source: source, ok: ok, note: problem))
         reloadHistory()
@@ -355,68 +330,17 @@ final class AppModel: ObservableObject {
         return config.target(id: name)
             ?? all.first { $0.name == name }
             ?? all.first { $0.name.caseInsensitiveCompare(name) == .orderedSame }
-            ?? all.first { FindMyAutomator.normalize($0.name) == FindMyAutomator.normalize(name) }
+            ?? all.first { Self.loose($0.name) == Self.loose(name) }
     }
 
-    // MARK: AirTags
-
-    func refreshPermissions() {
-        airTagPermissionsOK = SharedStore.demo != nil || (FindMyAutomator.hasAccessibility && FindMyAutomator.hasScreenRecording)
-    }
-
-    func requestAccessibility() {
-        FindMyAutomator.requestAccessibility()
-        refreshPermissions()
-    }
-
-    func requestScreenRecording() {
-        FindMyAutomator.requestScreenRecording()
-        refreshPermissions()
-    }
-
-    func addAirTag(_ raw: String) {
-        let name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty,
-              !config.airTags.contains(where: { $0.caseInsensitiveCompare(name) == .orderedSame }) else { return }
-        commit { $0.airTags.append(name) }
-    }
-
-    func removeAirTag(_ name: String) {
-        commit { c in
-            c.airTags.removeAll { $0 == name }
-            c.favoriteAirTags.removeAll { $0 == name }
+    /// A name with case, curly apostrophes, punctuation and extra spaces
+    /// ignored: Siri and typed links rarely match "Daniel’s iPhone" exactly.
+    private static func loose(_ text: String) -> String {
+        let lowered = text.lowercased().replacingOccurrences(of: "’", with: "'")
+        let kept = lowered.unicodeScalars.filter {
+            CharacterSet.alphanumerics.contains($0) || $0 == " "
         }
-    }
-
-    /// Reads the item names from Find My's Items list and adds the new ones,
-    /// keeping hand-added names and favorites.
-    func findAirTags() async {
-        refreshPermissions()
-        guard airTagPermissionsOK else {
-            status = "Allow Accessibility and Screen Recording first."
-            return
-        }
-        findingAirTags = true
-        status = "Reading your AirTags from Find My… it opens for a moment."
-        defer { findingAirTags = false }
-        do {
-            let found = try await automator.listItems()
-            let known = Set(config.airTags.map(FindMyAutomator.normalize))
-            let new = found.filter { !known.contains(FindMyAutomator.normalize($0)) }
-            commit { $0.airTags.append(contentsOf: new) }
-            status = found.isEmpty
-                ? "Didn't find any items in Find My's Items list."
-                : "Found \(found.count) item\(found.count == 1 ? "" : "s") in Find My, \(new.count) new."
-        } catch {
-            status = error.localizedDescription
-        }
-    }
-
-    /// The first time the AirTags section opens with nothing in it.
-    func findAirTagsIfNeeded() async {
-        refreshPermissions()
-        guard config.airTags.isEmpty, airTagPermissionsOK, !findingAirTags, !triedAutoFind else { return }
-        triedAutoFind = true
-        await findAirTags()
+        return String(String.UnicodeScalarView(kept))
+            .split(separator: " ").joined(separator: " ")
     }
 }

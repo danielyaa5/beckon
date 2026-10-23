@@ -3,8 +3,8 @@ import os
 import FindMyRingKit
 
 /// Storage shared between the app and the widget extension:
-///   * Apple Account email, device list, favorites, hidden devices, AirTag
-///     names → `config.json` in the App Group container
+///   * Apple Account email, device list, favorites, hidden devices
+///     → `config.json` in the App Group container
 ///   * the last 200 rings → `history.json` beside it (the widget adds to it too)
 ///   * password → data protection keychain, in a shared access group
 /// so the widget can ring on its own. A sign-in itself keeps nothing.
@@ -56,10 +56,6 @@ enum SharedStore {
         var favoriteIDs: [String] = []
         /// Devices left out of the menu and widgets (old Macs and the like).
         var hiddenIDs: [String] = []
-        /// AirTag names exactly as Find My shows them. Only the app can ring
-        /// these (by driving the Find My app); widgets open the app to do it.
-        var airTags: [String] = []
-        var favoriteAirTags: [String] = []
         var lastRefresh: Date?
         /// What the global ring shortcut rings (a `RingTarget` id); nil means
         /// the first favorite.
@@ -70,24 +66,24 @@ enum SharedStore {
         init() {}
 
         /// Every key optional, so a file from an older version still loads.
+        /// Keys this version no longer uses (the AirTag names and favorites
+        /// that versions which rang AirTags kept) are ignored, and dropped at
+        /// the next save.
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
             appleID = try c.decodeIfPresent(String.self, forKey: .appleID)
             devices = try c.decodeIfPresent([CachedDevice].self, forKey: .devices) ?? []
             favoriteIDs = try c.decodeIfPresent([String].self, forKey: .favoriteIDs) ?? []
             hiddenIDs = try c.decodeIfPresent([String].self, forKey: .hiddenIDs) ?? []
-            airTags = try c.decodeIfPresent([String].self, forKey: .airTags) ?? []
-            favoriteAirTags = try c.decodeIfPresent([String].self, forKey: .favoriteAirTags) ?? []
             lastRefresh = try c.decodeIfPresent(Date.self, forKey: .lastRefresh)
             hotkeyTarget = try c.decodeIfPresent(String.self, forKey: .hotkeyTarget)
             hotkeyText = try c.decodeIfPresent(String.self, forKey: .hotkeyText)
         }
 
-        /// Starred devices (list order), then starred AirTags.
+        /// Starred devices, in list order.
         var favorites: [RingTarget] {
             let favs = Set(favoriteIDs), hidden = Set(hiddenIDs)
             return devices.filter { favs.contains($0.id) && !hidden.contains($0.id) }.map(RingTarget.device)
-                + favoriteAirTags.map(RingTarget.airTag)
         }
 
         var visibleDevices: [CachedDevice] {
@@ -99,15 +95,10 @@ enum SharedStore {
         var allTargets: [RingTarget] {
             let hidden = Set(hiddenIDs)
             return visibleDevices.map(RingTarget.device)
-                + airTags.map(RingTarget.airTag)
                 + devices.filter { hidden.contains($0.id) }.map(RingTarget.device)
         }
 
         func target(id: String) -> RingTarget? {
-            if id.hasPrefix(RingTarget.airTagPrefix) {
-                let name = String(id.dropFirst(RingTarget.airTagPrefix.count))
-                return airTags.contains(name) ? .airTag(name) : nil
-            }
             return devices.first { $0.id == id }.map(RingTarget.device)
         }
 
@@ -117,10 +108,10 @@ enum SharedStore {
         }
 
         func isFavorite(_ t: RingTarget) -> Bool {
-            t.isAirTag ? favoriteAirTags.contains(t.name) : favoriteIDs.contains(t.id)
+            favoriteIDs.contains(t.id)
         }
 
-        func isHidden(_ t: RingTarget) -> Bool { !t.isAirTag && hiddenIDs.contains(t.id) }
+        func isHidden(_ t: RingTarget) -> Bool { hiddenIDs.contains(t.id) }
     }
 
     // MARK: Files
@@ -195,9 +186,11 @@ enum SharedStore {
         let note: String?
     }
 
+    /// Rings of AirTags, which versions before this one could ring through
+    /// Find My, are left out: there's nothing to ring again.
     static func history() -> [RingEvent] {
         if let demo { return demo.history }
-        return read([RingEvent].self, "history.json") ?? []
+        return (read([RingEvent].self, "history.json") ?? []).filter { !$0.target.hasPrefix("airtag:") }
     }
 
     /// The app and the widget both add rings, from separate processes; a file

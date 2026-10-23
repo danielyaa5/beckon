@@ -26,11 +26,11 @@ final class RingHUD {
         switch message {
         case .ringing(let t):
             view = HUDView(symbol: "speaker.wave.2.fill", title: "Ringing \(t.name)",
-                           detail: t.isAirTag ? "Find My opens for a moment" : "Signing in to iCloud…", busy: true)
+                           detail: "Signing in to iCloud…", busy: true)
             delay = 45
         case .sent(let t):
             view = HUDView(symbol: "speaker.wave.2.fill", title: "Ringing \(t.name)",
-                           detail: t.isAirTag ? "Sent from this Mac" : "Sent · Apple will email you", busy: false)
+                           detail: "Sent · Apple will email you", busy: false)
             delay = 1.8
         case .failed(let name, let why):
             view = HUDView(symbol: "exclamationmark.triangle.fill", title: name.map { "Couldn't ring \($0)" } ?? "Nothing to ring",

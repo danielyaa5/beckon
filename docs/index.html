@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Beckon: ring your iPhone, AirPods and AirTags from your Mac</title>
-<meta name="description" content="A free Mac menu-bar app and desktop widget that makes your iPhone, iPad, AirPods, Apple Watch or AirTag play a sound, in one click, one key or one word.">
+<title>Beckon: ring your iPhone, iPad and AirPods from your Mac</title>
+<meta name="description" content="A free Mac menu-bar app and desktop widget that makes your iPhone, iPad, AirPods or Apple Watch play a sound, in one click, one key or one word.">
 <link rel="icon" type="image/png" href="icon.png">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Beckon: ring your iPhone from your Mac">
-<meta property="og:description" content="One click, one key or one word makes a misplaced iPhone, AirPods or AirTag play a sound, even on silent. Free for Mac.">
+<meta property="og:description" content="One click, one key or one word makes a misplaced iPhone, iPad or AirPods play a sound, even on silent. Free for Mac.">
 <meta property="og:image" content="https://danielyaa5.github.io/beckon/screenshot-window.png">
 <meta property="og:url" content="https://danielyaa5.github.io/beckon/">
 <meta name="twitter:card" content="summary_large_image">
@@ -81,7 +81,7 @@
 <header class="hero wrap">
   <img class="icon" src="icon.png" alt="">
   <h1>Ring your iPhone from your Mac, in&nbsp;one&nbsp;click</h1>
-  <p class="lede">Beckon makes a misplaced iPhone, iPad, AirPods, Apple Watch or AirTag play a sound, even on silent. From the menu bar, a desktop widget, a shortcut key or Siri, without opening Find&nbsp;My.</p>
+  <p class="lede">Beckon makes a misplaced iPhone, iPad, AirPods or Apple Watch play a sound, even on silent. From the menu bar, a desktop widget, a shortcut key or Siri, without opening Find&nbsp;My.</p>
   <a class="download" href="https://github.com/danielyaa5/beckon/releases/latest/download/Beckon.dmg">Download for Mac</a>
   <p class="fine">Free · macOS 14 or later · Apple silicon and Intel · signed and checked by Apple</p>
 </header>
@@ -140,23 +140,15 @@
         <h3>The menu bar</h3>
         <p>Search with <kbd>⌘K</kbd>, your favorites with their keys, and your last rings with <b>Again</b>. Beckon lives here, with no Dock icon unless its window is open.</p>
       </div>
-      <img class="narrow" src="screenshot-menu.png" alt="Beckon's menu bar popover with favorites, AirTags and recent rings" width="700" height="977" loading="lazy">
+      <img class="narrow" src="screenshot-menu.png" alt="Beckon's menu bar popover with favorites and recent rings" width="700" height="977" loading="lazy">
     </div>
 
     <div class="feature flip">
       <div>
         <h3>The window</h3>
-        <p>All your devices by type, AirTags, devices you've hidden (old Macs, say), your ring history and settings. Siri and Shortcuts get <b>Ring a Device</b> too: "Ring my device with Beckon."</p>
+        <p>All your devices by type, devices you've hidden (old Macs, say), your ring history and settings. Siri and Shortcuts get <b>Ring a Device</b> too: "Ring my device with Beckon."</p>
       </div>
       <img src="screenshot-window.png" alt="Beckon's window listing six devices with Ring buttons and stars" width="1600" height="1102" loading="lazy">
-    </div>
-
-    <div class="feature">
-      <div>
-        <h3>AirTags, too</h3>
-        <p>Apple's web Find My can't ring AirTags, so Beckon drives the Mac's Find My app for you. It works when the AirTag is in Bluetooth range of your Mac, and needs Accessibility and Screen Recording permission. Find My shows for a moment while it rings.</p>
-      </div>
-      <img src="screenshot-airtags.png" alt="Beckon's AirTags page listing Keys, Backpack, Wallet, Car and Suitcase" width="1600" height="1102" loading="lazy">
     </div>
   </section>
 
@@ -183,6 +175,10 @@
     <details>
       <summary>Why does a ring take a couple of seconds?</summary>
       <p>Each ring signs in to Apple and then sends the sound, which takes about two to three seconds. The widget shows <b>Sending…</b> meanwhile.</p>
+    </details>
+    <details>
+      <summary>Can it ring AirTags?</summary>
+      <p>No. Find My on the web can't reach AirTags; only the Find My app can play their sound, over Bluetooth. <b>Find your AirTags</b> in Beckon's menu opens Find My's Items tab, so you can pick the AirTag there and press Play Sound.</p>
     </details>
     <details>
       <summary>Is there an iPhone version?</summary>

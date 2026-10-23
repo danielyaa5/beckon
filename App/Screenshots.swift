@@ -52,8 +52,7 @@ enum Screenshots {
 
         // The window, one page at a time.
         for (section, name) in [(WindowSection.all, "window-all"), (.favorites, "window-favorites"),
-                                (.airTags, "window-airtags"), (.history, "window-history"),
-                                (.settings, "window-settings")] {
+                                (.history, "window-history"), (.settings, "window-settings")] {
             model.section = section
             await shoot(name, style: .window(NSSize(width: 980, height: 640))) {
                 MainWindow().environmentObject(model)
@@ -228,8 +227,6 @@ enum DemoData {
         ]
         config.favoriteIDs = [phoneID, airPodsID, "demo-watch"]
         config.hiddenIDs = ["demo-oldmac"]
-        config.airTags = ["Keys", "Backpack", "Wallet", "Car", "Suitcase"]
-        config.favoriteAirTags = ["Keys"]
         config.lastRefresh = .now.addingTimeInterval(-3 * 3600)
         config.hotkeyTarget = phoneID
         config.hotkeyText = "⌃⌥⌘R"
@@ -241,7 +238,7 @@ enum DemoData {
         }
         let history = [
             event(18, phoneID, "Alex's iPhone", .phone, "Widget"),
-            event(95, RingTarget.airTagPrefix + "Keys", "Keys", .airTag, "Palette"),
+            event(95, airPodsID, "Alex's AirPods Pro", .earbuds, "Palette"),
             event(60 * 26, "demo-watch", "Alex's Apple Watch", .watch, "Shortcut key"),
             event(60 * 50, "demo-ipad", "Alex's iPad", .tablet, "Menu"),
         ]
