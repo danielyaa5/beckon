@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy · Beckon</title>
+<meta name="description" content="What Beckon, the Mac app that rings your Apple devices, stores and sends, and what it doesn't.">
+<link rel="icon" type="image/png" href="icon.png">
+<style>
+  :root {
+    --bg: #f6f4f1; --card: #ffffff; --fg: #1d1b1a; --muted: #625d59; --line: #e4dfda;
+    --accent: #b6400b; --accent-ink: #ffffff; --soft: #fbebe1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #171514; --card: #221f1d; --fg: #f3f0ee; --muted: #a9a29c; --line: #36312e;
+      --accent: #ff8a52; --accent-ink: #1d0f07; --soft: #3a2418;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+  a { color: var(--accent); }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 22px; }
+  nav { padding: 26px 0 0; }
+  nav a { text-decoration: none; font-weight: 600; }
+  main { padding: 20px 0 44px; }
+  h1 { font-size: clamp(30px, 5vw, 42px); line-height: 1.15; letter-spacing: -.02em; margin: 10px 0 6px; }
+  h2 { font-size: 21px; margin: 34px 0 8px; }
+  p, ul { margin: 0 0 12px; }
+  li { margin-bottom: 6px; }
+  .muted { color: var(--muted); }
+  code { font-size: 15px; background: var(--card); border: 1px solid var(--line); border-radius: 5px; padding: 0 4px; }
+  footer { border-top: 1px solid var(--line); padding: 26px 0 40px; color: var(--muted); font-size: 15px; text-align: center; }
+</style>
+</head>
+<body>
+
+<nav class="wrap"><a href="./">← Beckon</a></nav>
+
+<main class="wrap">
+  <h1>Privacy Policy</h1>
+  <p class="muted">Effective October 23, 2026</p>
+
+  <p>Beckon is a free Mac app made by one independent developer, Daniel Yakobian. It rings your own Apple devices through Find My. This page explains what it stores, what it sends and to whom. The short version: there's no Beckon server, and nothing you enter in Beckon is sent to me.</p>
+
+  <h2>No Beckon server, account or tracking</h2>
+  <p>Beckon has no server, no Beckon account, no analytics, no tracking, no ads and no crash reporting. I can't see your Apple Account, your devices or your rings.</p>
+
+  <h2>What is sent to Apple</h2>
+  <p>To load your device list and to ring a device, Beckon sends your Apple Account email and password directly to Apple: to Apple's sign-in service (<code>idmsa.apple.com</code>), to <code>setup.icloud.com</code>, and to iCloud's Find My web service. That's the same service iCloud.com uses. Beckon signs in only when you sign in, press Reload list, or ring a device (from the app, a widget, the shortcut key, a link or Shortcuts). It doesn't check on your devices in the background.</p>
+  <p>Apple emails you after each ring, just as it does when you ring from iCloud.com. What Apple receives and keeps is covered by <a href="https://www.apple.com/legal/privacy/">Apple's Privacy Policy</a>, not this one.</p>
+
+  <h2>What is stored on your Mac</h2>
+  <ul>
+    <li><b>Your password</b>, in your Mac's Keychain (the data protection keychain, in a group shared only with Beckon's widget, so the widget can ring with the app closed). It's saved only after Apple accepts it. Beckon deletes it when you sign out, and when Apple rejects it (for example after you change it).</li>
+    <li><b>In Beckon's App Group folder on your Mac:</b> your Apple Account email, your devices' names and models and whether each was online at the last reload, your favorites, hidden devices and settings, and your last 200 rings (device, time, where you rang from, and whether it worked). Signing out also removes the device list. You can clear the ring history in Beckon's Ring history page.</li>
+    <li>Beckon doesn't store your devices' locations, battery levels or other status, and doesn't write Apple sign-in sessions or cookies to disk. A signed-in session is kept in memory for up to 10 minutes, then dropped.</li>
+  </ul>
+  <p>Beckon writes short technical messages to macOS's own log on your Mac (whether you're signed in, how many devices loaded, whether a ring was sent), never your password. They stay on your Mac.</p>
+
+  <h2>Update checks</h2>
+  <p>Beckon uses <a href="https://sparkle-project.org/">Sparkle</a> to check for updates. A check downloads a small file, <code>appcast.xml</code>, from this website, and an update you choose to install is downloaded from Beckon's GitHub releases. GitHub, which hosts both, sees your IP address and app version in those requests, as any website would. Beckon doesn't send Sparkle's optional system profile. You can turn off automatic checks in Beckon's Settings.</p>
+
+  <h2>This website</h2>
+  <p>This site is hosted by GitHub Pages. It has no analytics, no cookies and no third-party scripts. GitHub may log visits (such as IP addresses) to run and secure its service; see <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement">GitHub's Privacy Statement</a>.</p>
+
+  <h2>Children</h2>
+  <p>Beckon isn't directed at children and collects nothing from anyone, children included.</p>
+
+  <h2>Changes</h2>
+  <p>If what Beckon stores or sends changes, I'll update this page and its effective date before or with the release that changes it. The page's history is public in <a href="https://github.com/danielyaa5/beckon/commits/master/docs/privacy.html">Beckon's GitHub repository</a>.</p>
+
+  <h2>Contact</h2>
+  <p>Questions about privacy: <a href="mailto:CONTACT_EMAIL">CONTACT_EMAIL</a>, or <a href="https://github.com/danielyaa5/beckon/issues">open an issue on GitHub</a>.</p>
+</main>
+
+<footer class="wrap">
+  <a href="./">Beckon</a> · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="mailto:CONTACT_EMAIL">CONTACT_EMAIL</a><br>
+  Beckon is made by Daniel Yakobian. Not affiliated with Apple. iPhone, AirPods, AirTag and Find My are trademarks of Apple Inc.
+</footer>
+
+</body>
+</html>
