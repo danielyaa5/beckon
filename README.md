@@ -313,6 +313,9 @@ fixes it, and launchd starts it again at once.
 If a desktop widget then shows only a sliver on screen while screenshots show
 it whole, `killall NotificationCenter` makes the desktop redraw it.
 
-There is also a separate, already-running home-network version in
-`~/Developer/findmy-sound` (a server on moms-air-m2 that Shortcuts widgets hit);
-this project is the standalone, no-server app that replaces it.
+An earlier home-network version used a server on another Mac that Shortcuts
+widgets called; this project is the standalone, no-server app that replaces it.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
