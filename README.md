@@ -1,9 +1,13 @@
 # Beckon
 
-A small macOS (and, later, iOS) app that rings your Apple devices
-through Find My — one tap, one key or one word to make a misplaced iPhone play a
-sound, even on silent. Built 2026-10-15 as "Find My Ring"; redesigned in 0.3.0
-and renamed Beckon in 0.4.1 (both 2026-10-16).
+Beckon is a free Mac menu-bar app and desktop widget that rings your iPhone,
+iPad, AirPods or Apple Watch through Find My. One click, one key or one word
+makes a misplaced iPhone play a sound, even on silent: from the menu bar, a
+desktop widget, a global shortcut or Siri, without opening Find My. An iOS
+version is planned.
+
+Beckon started on 2026-10-15 as "Find My Ring", was redesigned in 0.3.0 and
+was renamed Beckon in 0.4.1 (both 2026-10-16).
 
 ![Typing "air" in Beckon's palette rings AirPods; clicking Ring on the desktop widget shows Sending, then Sent](docs/demo.gif)
 
