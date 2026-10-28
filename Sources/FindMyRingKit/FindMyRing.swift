@@ -111,9 +111,29 @@ public actor FindMyRing {
                 // Apple sends 0 with "Unknown" when it has no reading.
                 batteryLevel: level.flatMap { $0 > 0 || (status != nil && status != "Unknown") ? min($0, 1) : nil },
                 batteryStatus: status,
-                location: Self.location(d["location"] as? [String: Any])
+                location: Self.location(d["location"] as? [String: Any]),
+                availability: DeviceAvailability(status: d["deviceStatus"] as? String)
             )
         }
+    }
+
+    /// Refresh availability without requesting a location update. Discard all
+    /// battery/location fields Apple may include in its response.
+    public func availability() async throws -> AvailabilitySnapshot {
+        let json = try await fmipPOST("refreshClient", body: [
+            "clientContext": ["fmly": false, "shouldLocate": false,
+                              "selectedDevice": "all", "deviceListVersion": 1],
+        ])
+        guard let content = json["content"] as? [[String: Any]], !content.isEmpty else {
+            throw RingError(.server, "Needs refresh. Apple didn't return device status.")
+        }
+        var states: [String: DeviceAvailability] = [:]
+        for item in content {
+            guard let id = item["id"] as? String, !id.isEmpty else { continue }
+            states[id] = DeviceAvailability(status: item["deviceStatus"] as? String)
+        }
+        guard !states.isEmpty else { throw RingError(.server, "Needs refresh.") }
+        return AvailabilitySnapshot(devices: states, checkedAt: .now, valid: true)
     }
 
     static func location(_ l: [String: Any]?) -> FoundDevice.Location? {
@@ -133,11 +153,12 @@ public actor FindMyRing {
 
     /// Play a sound on one device id.
     public func playSound(deviceID: String, subject: String = "Beckon") async throws {
-        _ = try await fmipPOST("playSound", body: [
+        let response = try await fmipPOST("playSound", body: [
             "device": deviceID,
             "subject": subject,
             "clientContext": ["fmly": true],
         ])
+        try SoundResponse.validate(response)
     }
 
     // MARK: Sign-in steps
@@ -358,6 +379,7 @@ public actor FindMyRing {
         allowErrorStatus: Bool = false
     ) async throws -> (Data, HTTPURLResponse) {
         var req = URLRequest(url: url)
+        req.timeoutInterval = 20
         req.httpMethod = method
         for (k, v) in headers { req.setValue(v, forHTTPHeaderField: k) }
         req.httpBody = body
@@ -366,6 +388,9 @@ public actor FindMyRing {
         do {
             (data, response) = try await session.data(for: req)
         } catch {
+            if url.path.hasSuffix("/playSound") {
+                throw RingError(.uncertain, "Couldn't confirm. The request may have gone through.")
+            }
             throw RingError(.network, "Could not reach Apple: \(error.localizedDescription)")
         }
         guard let http = response as? HTTPURLResponse else {
@@ -373,6 +398,9 @@ public actor FindMyRing {
         }
         for (header, key) in Self.headerMap {
             if let v = http.value(forHTTPHeaderField: header) { state[key] = v }
+        }
+        if !allowErrorStatus && [401, 403].contains(http.statusCode) {
+            throw RingError(.sessionExpired, "Session expired. Sign in again.")
         }
         if !allowErrorStatus && !(200...299).contains(http.statusCode) {
             if isAccountLocked(data) {

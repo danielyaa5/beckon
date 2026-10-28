@@ -2,7 +2,7 @@
 
 macOS menu-bar app and widgets, originally named Find My Ring. Read `README.md`, `Package.swift`, `project.yml`, and the affected files in `App/`, `Widget/`, `Shared/`, or `Sources/`.
 
-- Preserve the ringing-only product scope: do not add background device-data, location, battery, or place collection without the user's approval.
+- Preserve the ringing and availability scope: background availability checks are authorized; do not add location, battery, or place collection without the user's approval. Keep unknown and stale availability distinct from offline, using "Needs refresh".
 - The existing bundle/app-group identifiers are compatibility boundaries. Do not rename them just because the customer-facing app name changed.
 - Swift package validation starts with `swift test`; native app/widget builds require Xcode and configured signing. Tests do not prove a device physically rang.
 - Verify the real app/widget interaction when authorized and available. Separate Apple-device ringing from AirTag automation through Find My and its permissions.

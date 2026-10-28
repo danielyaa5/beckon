@@ -25,15 +25,15 @@ final class RingHUD {
         let delay: Double
         switch message {
         case .ringing(let t):
-            view = HUDView(symbol: "speaker.wave.2.fill", title: "Ringing \(t.name)",
-                           detail: "Signing in to iCloud…", busy: true)
+            view = HUDView(symbol: "speaker.wave.2.fill", title: "Sending to \(t.name)",
+                           detail: "Checking status…", busy: true)
             delay = 45
-        case .sent(let t):
-            view = HUDView(symbol: "speaker.wave.2.fill", title: "Ringing \(t.name)",
-                           detail: "Sent · Apple will email you", busy: false)
+        case .sent:
+            view = HUDView(symbol: "speaker.wave.2.fill", title: "Request sent",
+                           detail: "Playback isn't confirmed", busy: false)
             delay = 1.8
         case .failed(let name, let why):
-            view = HUDView(symbol: "exclamationmark.triangle.fill", title: name.map { "Couldn't ring \($0)" } ?? "Nothing to ring",
+            view = HUDView(symbol: "exclamationmark.triangle.fill", title: name.map { "Request for \($0)" } ?? "Nothing to ring",
                            detail: why, busy: false)
             delay = 4
         }

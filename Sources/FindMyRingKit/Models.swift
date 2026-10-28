@@ -8,6 +8,7 @@ public struct FoundDevice: Sendable, Identifiable {
     public let model: String
     public let deviceClass: String
     public let isOnline: Bool
+    public let availability: DeviceAvailability
     public let canRing: Bool
     /// 0...1, or nil when Apple reports no reading (common for AirPods).
     public let batteryLevel: Double?
@@ -36,13 +37,15 @@ public struct FoundDevice: Sendable, Identifiable {
     public init(
         id: String, name: String, model: String, deviceClass: String,
         isOnline: Bool, canRing: Bool,
-        batteryLevel: Double? = nil, batteryStatus: String? = nil, location: Location? = nil
+        batteryLevel: Double? = nil, batteryStatus: String? = nil, location: Location? = nil,
+        availability: DeviceAvailability? = nil
     ) {
         self.id = id
         self.name = name
         self.model = model
         self.deviceClass = deviceClass
         self.isOnline = isOnline
+        self.availability = availability ?? (isOnline ? .online : .offline)
         self.canRing = canRing
         self.batteryLevel = batteryLevel
         self.batteryStatus = batteryStatus
@@ -57,6 +60,8 @@ public struct RingError: Error, CustomStringConvertible, Sendable {
         case accountLocked     // Apple reports the account locked
         case twoFactorWanted   // Apple would not grant password-only Find My
         case network           // could not reach Apple
+        case sessionExpired
+        case uncertain         // request may have reached Apple
         case server            // unexpected response
     }
     public let kind: Kind

@@ -16,6 +16,12 @@ actor FindMyService {
     private var signingIn: Task<FindMyRing, Error>?
 
     func devices(appleID: String, password: String) async throws -> [FoundDevice] {
+        #if BECKON_QA
+        return AvailabilityQA.configuration.devices.map {
+            FoundDevice(id: $0.id, name: $0.name, model: $0.model, deviceClass: $0.deviceClass ?? "",
+                        isOnline: $0.online == true, canRing: true)
+        }
+        #else
         let usedCachedSession = client != nil && clientAppleID == appleID
             && Date().timeIntervalSince(signedInAt) < Self.reuseFor
         let reused = try await signedIn(appleID: appleID, password: password, fresh: false)
@@ -26,16 +32,36 @@ actor FindMyService {
         } catch let error as RingError where error.kind == .server {}
         let fresh = try await signedIn(appleID: appleID, password: password, fresh: true)
         return try await fresh.listDevices()
+        #endif
     }
 
     func ring(deviceID: String, appleID: String, password: String) async throws {
+        #if BECKON_QA
+        AvailabilityQA.receipt()
+        return
+        #else
         let reused = try await signedIn(appleID: appleID, password: password, fresh: false)
-        do {
-            try await reused.playSound(deviceID: deviceID)
-            return
-        } catch let error as RingError where error.kind == .server {}
-        let fresh = try await signedIn(appleID: appleID, password: password, fresh: true)
-        try await fresh.playSound(deviceID: deviceID)
+        // Never retry an ambiguous sound request: it could already be queued.
+        try await reused.playSound(deviceID: deviceID)
+        #endif
+    }
+
+    func availability(appleID: String, password: String) async throws -> AvailabilitySnapshot {
+        #if BECKON_QA
+        return AvailabilityQA.snapshot()
+        #else
+        let client = try await signedIn(appleID: appleID, password: password, fresh: false)
+        let snapshot: AvailabilitySnapshot
+        do { snapshot = try await client.availability() }
+        catch let error as RingError where error.kind == .sessionExpired {
+            let renewed = try await signedIn(appleID: appleID, password: password, fresh: true)
+            snapshot = try await renewed.availability()
+        }
+        // Reuse an actively working session rather than password-signing-in
+        // every ten minutes just because background monitoring is enabled.
+        signedInAt = .now
+        return snapshot
+        #endif
     }
 
     func forget() {

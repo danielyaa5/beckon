@@ -1,6 +1,7 @@
 import WidgetKit
 import SwiftUI
 import os
+import FindMyRingKit
 
 // The widgets' views and entries. Compiled into the widget extension, which
 // shows them, and into the app, which draws them only for the screenshots in
@@ -54,22 +55,27 @@ extension RingState {
         switch self {
         case .ringing: "ellipsis"
         case .sent: "checkmark"
-        case .failed: "exclamationmark"
+        case .failed, .uncertain: "exclamationmark"
+        case .needsRefresh: "arrow.clockwise"
         }
     }
     var title: String {
         switch self {
         case .ringing: "Sending…"
-        case .sent: "Sent"
-        case .failed: "Didn't ring"
+        case .sent: "Request sent"
+        case .failed: "Couldn't send"
+        case .uncertain: "Couldn't confirm"
+        case .needsRefresh: "Needs refresh"
         }
     }
     /// The line under a device's name in the list.
     var detail: String {
         switch self {
         case .ringing: "Sending…"
-        case .sent: "Sent, it should ring now"
-        case .failed: "Didn't ring, see Beckon"
+        case .sent: "Request sent · playback unconfirmed"
+        case .failed: "Couldn't send · see Beckon"
+        case .uncertain: "Couldn't confirm · see Beckon"
+        case .needsRefresh: "Needs refresh"
         }
     }
     var fill: Color { self == .sent ? Color(red: 0.16, green: 0.6, blue: 0.3) : .ringFill }
@@ -78,15 +84,30 @@ extension RingState {
 /// Rings from the widget directly: an App Intent in the widget's own process.
 struct WidgetRingButton<Label: View>: View {
     let target: RingTarget
+    var disabled = false
     @ViewBuilder let label: Label
 
     var body: some View {
         #if WIDGET_EXTENSION
         Button(intent: RingDeviceIntent(deviceID: target.id, deviceName: target.name)) { label }
             .buttonStyle(.plain)
+            .disabled(disabled)
         #else
         // The app draws these views only for screenshots.
         label
+        #endif
+    }
+}
+
+struct WidgetStatusRefresh: View {
+    var body: some View {
+        #if WIDGET_EXTENSION
+        Button(intent: RefreshDeviceStatusIntent()) {
+            Image(systemName: "arrow.clockwise").font(.system(size: 11, weight: .semibold))
+                .frame(width: 28, height: 24).contentShape(Rectangle())
+        }.buttonStyle(.plain).accessibilityLabel("Refresh device status")
+        #else
+        Image(systemName: "arrow.clockwise").font(.system(size: 11))
         #endif
     }
 }
@@ -119,13 +140,14 @@ struct FavoritesEntry: TimelineEntry {
     let hotkeyText: String?
     let hotkeyTargetID: String?
     var status: SharedStore.WidgetRingStatus? = nil
+    var availability: AvailabilitySnapshot = SharedStore.availability()
 
     func state(of t: RingTarget) -> RingState? { status?.target == t.id ? status?.state : nil }
 
     func cleared(at date: Date) -> FavoritesEntry {
         var e = self
         e.date = date
-        e.status = nil
+        if let status, status.expires <= date { e.status = nil }
         return e
     }
 
@@ -185,17 +207,17 @@ struct FavoritesView: View {
     private var small: some View {
         let hero = self.hero ?? entry.favorites[0]
         return VStack(alignment: .leading, spacing: 4) {
-            WidgetTitle(text: "Beckon")
+            HStack { WidgetTitle(text: "Beckon"); Spacer(); WidgetStatusRefresh() }
             Spacer(minLength: 0)
             Text(hero.name)
                 .font(.system(size: 17, weight: .bold))
                 .lineLimit(2)
                 .minimumScaleFactor(0.8)
-            Text(Describe.detail(hero))
+            Text(entry.availability.state(for: hero.id, at: entry.date).title)
                 .font(.system(size: 11.5))
                 .foregroundStyle(.secondary)
             Spacer(minLength: 0)
-            WidgetRingButton(target: hero) {
+            WidgetRingButton(target: hero, disabled: entry.availability.state(for: hero.id, at: entry.date) != .online || entry.state(of: hero) == .ringing) {
                 let state = entry.state(of: hero)
                 HStack(spacing: 6) {
                     if let state {
@@ -210,7 +232,7 @@ struct FavoritesView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 32)
-                .filledFace(RoundedRectangle(cornerRadius: 10), fill: state?.fill ?? .ringFill)
+                .filledFace(RoundedRectangle(cornerRadius: 10), fill: entry.availability.state(for: hero.id, at: entry.date) == .online ? state?.fill ?? .ringFill : .gray)
             }
         }
     }
@@ -222,19 +244,19 @@ struct FavoritesView: View {
             HStack {
                 WidgetTitle(text: "Beckon")
                 Spacer()
-                if let key = entry.hotkeyText { Text(key).font(.system(size: 10.5)).foregroundStyle(.tertiary) }
+                WidgetStatusRefresh()
             }
             ForEach(Array(entry.favorites.prefix(count))) { t in
-                WidgetRingButton(target: t) {
+                WidgetRingButton(target: t, disabled: entry.availability.state(for: t.id, at: entry.date) != .online || entry.state(of: t) == .ringing) {
                     let state = entry.state(of: t)
                     HStack(spacing: 10) {
                         Image(systemName: t.kind.symbol)
                             .font(.system(size: 14))
-                            .foregroundStyle(colors.text)
+                            .foregroundStyle(entry.availability.state(for: t.id, at: entry.date) == .online ? colors.text : .secondary)
                             .frame(width: 20)
                         VStack(alignment: .leading, spacing: 0) {
                             Text(t.name).font(.system(size: 12.5, weight: .semibold)).lineLimit(1)
-                            Text(state?.detail ?? Describe.detail(t))
+                            Text(state?.detail ?? entry.availability.state(for: t.id, at: entry.date).title)
                                 .font(.system(size: 10.5, weight: state == nil ? .regular : .semibold))
                                 .foregroundStyle(.secondary).lineLimit(1)
                         }
@@ -242,7 +264,7 @@ struct FavoritesView: View {
                         Image(systemName: state?.symbol ?? "speaker.wave.2.fill")
                             .font(.system(size: 12, weight: .semibold))
                             .frame(width: 30, height: 26)
-                            .filledFace(Capsule(), fill: state?.fill ?? .ringFill)
+                            .filledFace(Capsule(), fill: entry.availability.state(for: t.id, at: entry.date) == .online ? state?.fill ?? .ringFill : .gray)
                     }
                     .padding(.horizontal, 10)
                     .frame(height: 38)
@@ -265,6 +287,7 @@ struct RecentEntry: TimelineEntry {
     var date: Date
     let items: [Item]
     var status: SharedStore.WidgetRingStatus? = nil
+    var availability: AvailabilitySnapshot = SharedStore.availability()
 
     func state(of t: RingTarget?) -> RingState? {
         guard let t, status?.target == t.id else { return nil }
@@ -274,7 +297,7 @@ struct RecentEntry: TimelineEntry {
     func cleared(at date: Date) -> RecentEntry {
         var e = self
         e.date = date
-        e.status = nil
+        if let status, status.expires <= date { e.status = nil }
         return e
     }
 
@@ -301,13 +324,13 @@ struct RecentView: View {
         let colors = WidgetColors(scheme: scheme)
         let count = family == .systemSmall ? 3 : (family == .systemLarge ? 6 : 3)
         VStack(alignment: .leading, spacing: 6) {
-            WidgetTitle(text: "Last rings")
+            HStack { WidgetTitle(text: "Last rings"); Spacer(); WidgetStatusRefresh() }
             if entry.items.isEmpty {
                 WidgetHint(text: "Rings you send from the menu, palette, shortcut key or widgets show up here.")
             }
             ForEach(entry.items.prefix(count)) { item in
                 if let target = item.target {
-                    WidgetRingButton(target: target) { row(item, colors: colors, canRing: true) }
+                    WidgetRingButton(target: target, disabled: entry.availability.state(for: target.id, at: entry.date) != .online || entry.state(of: target) == .ringing) { row(item, colors: colors, canRing: true) }
                 } else {
                     row(item, colors: colors, canRing: false)
                 }
@@ -329,14 +352,14 @@ struct RecentView: View {
                         .font(.system(size: 10.5, weight: .semibold))
                         .foregroundStyle(state == .failed ? Color.orange : Color.secondary)
                 } else {
-                    Text(Self.when(item.event.date) + (item.event.ok ? "" : " · failed"))
+                    Text(Self.when(item.event.date) + (item.event.ok ? " · request sent" : item.event.uncertain == true ? " · couldn't confirm" : " · couldn't send"))
                         .font(.system(size: 10.5))
                         .foregroundStyle(item.event.ok ? Color.secondary : Color.orange)
                 }
             }
             Spacer(minLength: 4)
             if canRing && family != .systemSmall {
-                Text(state?.title ?? "Again")
+                Text(state?.title ?? (entry.availability.state(for: item.target?.id ?? "", at: entry.date) == .online ? "Again" : entry.availability.state(for: item.target?.id ?? "", at: entry.date).title))
                     .font(.system(size: 11.5, weight: .semibold))
                     .foregroundStyle(colors.text)
                     .widgetAccentable()

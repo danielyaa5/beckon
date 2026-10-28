@@ -8,3 +8,5 @@ xcuserdata/
 release/build/
 release/notarize.log
 .claude/
+
+build/

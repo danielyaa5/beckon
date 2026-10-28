@@ -6,7 +6,7 @@ enum Installation {
         let app = Bundle.main.bundleURL.standardizedFileURL
         let applications = FileManager.default.urls(for: .applicationDirectory, in: .localDomainMask)
             + FileManager.default.urls(for: .applicationDirectory, in: .userDomainMask)
-        guard applications.contains(where: { app.deletingLastPathComponent() == $0.standardizedFileURL }) else {
+        guard applications.contains(where: { app.path.hasPrefix($0.standardizedFileURL.path + "/") }) else {
             let alert = NSAlert()
             alert.messageText = "Move Beckon to Applications"
             alert.informativeText = "Drag Beckon into the Applications folder, then open it there to finish installing. This also lets Beckon install future updates."

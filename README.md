@@ -38,10 +38,25 @@ its own copy of Beckon's icon for the widget gallery.
 
 ## Device list
 
-List view is the default, and Beckon remembers your layout choice. Devices
-reported offline at the last list reload have muted icons and an
-**Offline at last reload** badge. This is saved availability, not a live check;
-use **Reload list** to update it.
+List view is the default, and Beckon remembers your layout choice.
+
+Beckon checks Apple's reported device availability in the background while the
+menu-bar app is running, targeting one request per second without overlapping requests. It
+reuses its signed-in session and backs off after errors. This is Apple's reported
+status, not a direct test of the device. No location or battery data is saved.
+
+Ring is enabled for a device recently reported online. Offline devices are
+muted and their immediate Ring action is disabled. Unknown status, failed checks,
+and readings older than 15 seconds show **Needs refresh**. Use **Refresh status**
+in the app or the refresh arrow in either widget. Widget updates are scheduled
+by macOS; one-second polling does not guarantee one-second widget redraws.
+Every Ring action checks availability again before sending. If the app is closed,
+the widget can still refresh and send requests independently.
+
+**Request sent** means the request completed without a detected rejection, not
+that the device played a sound. **Couldn't confirm** means it may have gone
+through; Beckon does not automatically retry that request. Open **Find My** to
+request a sound for an offline device when it reconnects.
 
 ## Updates (0.5.1)
 
@@ -88,7 +103,7 @@ of them (see "Screenshots and the website" below).
 - **Widgets**: "Ring" (favorites; small = one device with its shortcut key) and
   "Last rings" (tap to ring again). After a tap the
   button says "Sending…" while the widget signs in and sends the ring, then
-  "Sent" (green) for 10 seconds or "Didn't ring" for 30 (0.4.2; "Sending…"
+  "Request sent" for 10 seconds or "Couldn't send" / "Couldn't confirm" for 30 (0.4.2; "Sending…"
   since 0.4.4). macOS doesn't redraw a widget while its button's intent is
   running ("Reload not permitted" in chronod's log), and the sign-in plus
   the ring take about 2.5 s, so `RingDeviceIntent.perform()` only marks
@@ -107,12 +122,10 @@ of them (see "Screenshots and the website" below).
   Raycast, Alfred, Stream Deck or a bookmark. Links from before the rename
   (`findmyring://…`) still work.
 - **Hide devices** you never ring (old Macs) from the menu, palette and widgets.
-- **Ringing only, by choice (0.4.0)**: the app signs in to Apple to ring, and
-  loads your device list (names and models) only at sign-in or when you press
-  Reload list. No background or menu-open reloads, and no battery, location,
-  place or status is kept or shown; 0.3.x's map widget and battery bars are
-  gone. The owner chose this on 2026-10-16 to keep password sign-ins to a
-  minimum (hourly reloads meant about 25–40 a day).
+- **Ringing and availability**: device names and models load at sign-in or
+  Reload list. Background checks retain only availability and its check time.
+  No battery, location or place data is saved or displayed. Working sessions
+  are reused rather than password-signing-in on every check.
 
 Apple has no public API or Shortcuts action for Find My "Play Sound." The one
 thing it does allow is signing in to Find My's web endpoints with your Apple
@@ -310,5 +323,5 @@ If a desktop widget then shows only a sliver on screen while screenshots show
 it whole, `killall NotificationCenter` makes the desktop redraw it.
 
 There is also a separate, already-running home-network version in
-`~/Developer/findmy-sound` (a server on moms-air-m2 that Shortcuts widgets hit);
+a separate legacy Find My server used by Shortcuts widgets;
 this project is the standalone, no-server app that replaces it.

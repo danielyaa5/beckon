@@ -159,6 +159,10 @@ private struct DevicesPane: View {
             if !model.status.isEmpty { StatusFooter() }
         }
         .padding(20)
+        .toolbar {
+            Button("Refresh status", systemImage: "arrow.clockwise") { Task { await model.refreshAvailability() } }
+            Button("Find My", systemImage: "location") { NSWorkspace.shared.open(URL(string: "findmy://")!) }
+        }
     }
 }
 
@@ -172,9 +176,9 @@ struct DeviceCard: View {
             HStack(spacing: 10) {
                 Image(systemName: target.kind.symbol)
                     .font(.system(size: 17))
-                    .foregroundStyle(target.device.online == false ? Color.secondary : Color.ringText)
+                    .foregroundStyle(model.availabilityState(target) != .online ? Color.secondary : Color.ringText)
                     .frame(width: 36, height: 36)
-                    .background((target.device.online == false ? Color.secondary : Color.ringText).opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+                    .background((model.availabilityState(target) != .online ? Color.secondary : Color.ringText).opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
                 VStack(alignment: .leading, spacing: 1) {
                     Text(target.name).font(.system(size: 13.5, weight: .bold)).lineLimit(1)
                     Text(target.device.model).font(.system(size: 11.5)).foregroundStyle(.secondary).lineLimit(1)
@@ -205,7 +209,7 @@ private struct DeviceRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: target.kind.symbol)
-                .foregroundStyle(target.device.online == false ? Color.secondary : Color.ringText)
+                .foregroundStyle(model.availabilityState(target) != .online ? Color.secondary : Color.ringText)
                 .frame(width: 24)
             VStack(alignment: .leading, spacing: 1) {
                 Text(target.name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
@@ -224,17 +228,18 @@ private struct DeviceRow: View {
 }
 
 private struct DeviceAvailabilityBadge: View {
+    @EnvironmentObject var model: AppModel
     let target: RingTarget
 
     var body: some View {
-        if target.device.online == false {
-            Label("Offline at last reload", systemImage: "wifi.slash")
+        if model.availabilityState(target) != .online {
+            Label(model.availabilityState(target).title, systemImage: "wifi.slash")
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 8).padding(.vertical, 4)
                 .background(.quaternary, in: Capsule())
                 .fixedSize()
-                .help("Apple reported this device offline when the list was loaded. Availability can change; use Reload list to update it.")
+                .help("Availability reported by Apple. Use Refresh status to check again.")
         }
     }
 }
@@ -270,9 +275,9 @@ struct RingButton: View {
             }
         }
         .buttonStyle(.borderedProminent)
-        .tint(Color.ringFill)
+        .tint(model.availabilityState(target) == .online ? Color.ringFill : Color.gray)
         .controlSize(.small)
-        .disabled(model.ringingID != nil)
+        .disabled(model.ringingID != nil || model.availabilityState(target) != .online)
         .accessibilityLabel("Ring \(target.name)")
     }
 }
@@ -353,7 +358,7 @@ private struct HistoryPane: View {
                                 Image(systemName: event.kind.symbol).frame(width: 24).foregroundStyle(.secondary)
                                 VStack(alignment: .leading, spacing: 1) {
                                     Text(event.name).font(.system(size: 13, weight: .semibold))
-                                    Text(event.ok ? "Sent from \(event.source.lowercased())" : (event.note ?? "Failed"))
+                                    Text(event.ok ? "Request sent from \(event.source.lowercased())" : (event.note ?? "Failed"))
                                         .font(.system(size: 11.5))
                                         .foregroundStyle(event.ok ? Color.secondary : Color.orange)
                                         .lineLimit(2)

@@ -17,7 +17,9 @@ import FindMyRingKit
 /// its sign-in on relaunch and the widget never saw one. A team-prefixed
 /// group needs no profile entry. iOS only accepts `group.` IDs.
 enum SharedStore {
-    #if os(macOS)
+    #if BECKON_QA
+    static let appGroup = "4JWVY7832S.com.danielyakobian.beckon-availability-qa"
+    #elseif os(macOS)
     static let appGroup = "4JWVY7832S.com.danielyakobian.findmy-ring"
     #else
     static let appGroup = "group.com.danielyakobian.findmy-ring"
@@ -184,6 +186,7 @@ enum SharedStore {
         let source: String
         let ok: Bool
         let note: String?
+        var uncertain: Bool? = nil
     }
 
     /// Rings of AirTags, which versions before this one could ring through
@@ -230,7 +233,7 @@ enum SharedStore {
     /// seconds. Written only by the widget's intent, in its own file so the
     /// app's settings writes never race it.
     struct WidgetRingStatus: Codable, Hashable, Sendable {
-        enum State: String, Codable, Sendable { case ringing, sent, failed }
+        enum State: String, Codable, Sendable { case ringing, sent, failed, uncertain, needsRefresh }
         let target: String
         let state: State
         let date: Date
@@ -241,7 +244,7 @@ enum SharedStore {
             switch state {
             case .ringing: date.addingTimeInterval(60)
             case .sent: date.addingTimeInterval(10)
-            case .failed: date.addingTimeInterval(30)
+            case .failed, .uncertain, .needsRefresh: date.addingTimeInterval(30)
             }
         }
     }
@@ -257,6 +260,26 @@ enum SharedStore {
         write(status, "widget-status.json")
     }
 
+    // Availability has its own coordinated file: background readings never
+    // overwrite favorites/settings, and the widget can refresh independently.
+    static func availability() -> AvailabilitySnapshot {
+        if demo != nil {
+            return AvailabilitySnapshot(devices: Dictionary(uniqueKeysWithValues: load().devices.map {
+                ($0.id, $0.online.map { $0 ? DeviceAvailability.online : .offline } ?? .unknown)
+            }), checkedAt: .now, valid: true)
+        }
+        return read(AvailabilitySnapshot.self, "availability.json") ?? AvailabilitySnapshot()
+    }
+
+    static func saveAvailability(_ snapshot: AvailabilitySnapshot) {
+        guard demo == nil else { return }
+        coordinatedWrite("availability.json") {
+            let previous = availability()
+            guard snapshot.checkedAt >= previous.checkedAt else { return }
+            write(snapshot, "availability.json")
+        }
+    }
+
     // MARK: Password
 
     static func savePassword(_ password: String, appleID: String) throws {
@@ -265,9 +288,13 @@ enum SharedStore {
     }
 
     static func password(appleID: String) -> String? {
+        #if BECKON_QA
+        return "qa-only"
+        #else
         guard !appleID.isEmpty else { return nil }
         if demo != nil { return "demo" }
         return KeychainStore.read(account: appleID, accessGroup: keychainGroup)
+        #endif
     }
 
     /// Only the password: devices, favorites and history stay for the next sign-in.
@@ -280,6 +307,7 @@ enum SharedStore {
         if demo != nil { return }
         KeychainStore.delete(account: appleID, accessGroup: keychainGroup)
         update { $0.devices = [] }
+        saveAvailability(AvailabilitySnapshot(checkedAt: .now))
     }
 
     /// Run by the app at launch; the widget only reads. When the settings
@@ -287,6 +315,10 @@ enum SharedStore {
     /// (its account is the email), so a lost or never-written settings file
     /// doesn't sign you out.
     static func prepare() {
+        #if BECKON_QA
+        save(AvailabilityQA.configuration)
+        return
+        #else
         if demo != nil { return }
         var config = load()
         if config.appleID?.isEmpty ?? true,
@@ -296,5 +328,6 @@ enum SharedStore {
         }
         let signedIn = password(appleID: config.appleID ?? "") != nil
         log.notice("App launch: signed in \(signedIn, privacy: .public), \(config.devices.count, privacy: .public) devices cached")
+        #endif
     }
 }

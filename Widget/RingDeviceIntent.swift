@@ -56,14 +56,30 @@ struct WidgetRing: Sendable {
         let activity = ProcessInfo.processInfo.beginActivity(options: [.userInitiated], reason: "Ringing a device")
         defer { ProcessInfo.processInfo.endActivity(activity) }
         do {
+            #if BECKON_QA
+            let snapshot = AvailabilityQA.snapshot()
+            #else
             let client = FindMyRing(appleID: appleID)
             try await client.signIn(password: password)
+            let snapshot = try await client.availability()
+            #endif
+            SharedStore.saveAvailability(snapshot)
+            guard snapshot.state(for: deviceID) == .online else {
+                finish(ok: false, note: snapshot.state(for: deviceID) == .offline
+                       ? "Offline. Open Find My to request a sound when it reconnects." : "Needs refresh.", state: .needsRefresh)
+                return
+            }
+            #if BECKON_QA
+            AvailabilityQA.receipt()
+            #else
             try await client.playSound(deviceID: deviceID, subject: "Beckon")
+            #endif
             SharedStore.log.notice("Widget ring sent")
             finish(ok: true, note: nil)
         } catch {
             SharedStore.log.error("Widget ring failed: \(String(describing: error), privacy: .public)")
-            finish(ok: false, note: String(describing: error))
+            let state: SharedStore.WidgetRingStatus.State = (error as? RingError)?.kind == .uncertain ? .uncertain : .failed
+            finish(ok: false, note: String(describing: error), state: state)
         }
     }
 
@@ -72,9 +88,33 @@ struct WidgetRing: Sendable {
         WidgetCenter.shared.reloadAllTimelines()
     }
 
-    func finish(ok: Bool, note: String?) {
+    func finish(ok: Bool, note: String?, state: SharedStore.WidgetRingStatus.State? = nil) {
         SharedStore.record(.init(target: deviceID, name: deviceName, kind: kind, date: .now,
-                                 source: "Widget", ok: ok, note: note))
-        setStatus(ok ? .sent : .failed)
+                                 source: "Widget", ok: ok, note: note, uncertain: state == .uncertain))
+        setStatus(state ?? (ok ? .sent : .failed))
+    }
+}
+
+/// Always available, even when the last rendered Ring button is disabled.
+struct RefreshDeviceStatusIntent: AppIntent {
+    static let title: LocalizedStringResource = "Refresh device status"
+    static let openAppWhenRun = false
+    func perform() async throws -> some IntentResult {
+        let config = SharedStore.load()
+        guard let account = config.appleID, let password = SharedStore.password(appleID: account) else { return .result() }
+        do {
+            #if BECKON_QA
+            let snapshot = AvailabilityQA.snapshot()
+            #else
+            let client = FindMyRing(appleID: account)
+            try await client.signIn(password: password)
+            let snapshot = try await client.availability()
+            #endif
+            SharedStore.saveAvailability(snapshot)
+        } catch {
+            SharedStore.saveAvailability(AvailabilitySnapshot(checkedAt: .now))
+        }
+        WidgetCenter.shared.reloadAllTimelines()
+        return .result()
     }
 }

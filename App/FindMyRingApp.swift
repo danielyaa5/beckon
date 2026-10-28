@@ -13,7 +13,7 @@ struct FindMyRingApp: App {
     }
 
     var body: some Scene {
-        MenuBarExtra(isInserted: .constant(!Screenshots.active)) {
+        MenuBarExtra(isInserted: .constant(!Screenshots.active && !StatusProbe.active)) {
             MenuPopover().environmentObject(AppModel.shared)
         } label: {
             Image(systemName: "iphone.radiowaves.left.and.right")
@@ -31,11 +31,22 @@ struct FindMyRingApp: App {
 /// Launch work that can't wait for the menu to be opened.
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if StatusProbe.active {
+            NSApp.setActivationPolicy(.accessory)
+            Task { await StatusProbe.run() }
+            return
+        }
         if Screenshots.active {
             NSApp.setActivationPolicy(.accessory)
             Task { await Screenshots.run() }
             return
         }
+        #if BECKON_QA
+        AppModel.shared.startMonitoring()
+        MainWindowController.shared.show()
+        AvailabilityQAController.show()
+        return
+        #endif
         guard Installation.finishIfInstalled() else {
             NSApp.terminate(nil)
             return
@@ -45,12 +56,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let model = AppModel.shared
         Hotkeys.install()
         model.willAppear()
-        if OnboardingController.shouldShow(hasCredentials: model.hasCredentials) {
+        let backgroundLaunch = CommandLine.arguments.contains("--background")
+        if !backgroundLaunch && OnboardingController.shouldShow(hasCredentials: model.hasCredentials) {
             OnboardingController.shared.show()
-        } else if !model.hasCredentials {
+        } else if !backgroundLaunch && !model.hasCredentials {
             MainWindowController.shared.show()
         }
-        Task { await Installation.offerCleanup() }
+        if !backgroundLaunch { Task { await Installation.offerCleanup() } }
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {

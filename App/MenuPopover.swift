@@ -290,12 +290,15 @@ struct MenuPopover: View {
                     .keyboardShortcut("o", modifiers: .command)
                 Spacer()
                 if model.hasCredentials {
-                    Button { Task { await model.refresh() } } label: {
+                    Button { Task { await model.refreshAvailability() } } label: {
                         Image(systemName: "arrow.clockwise")
                     }
-                    .help("Reload the device list, after adding or renaming a device. Signs in to Apple once.")
+                    .help("Refresh device status")
+                    .accessibilityLabel("Refresh device status")
                     .disabled(model.refreshing)
                 }
+                Button("Find My") { NSWorkspace.shared.open(URL(string: "findmy://")!) }
+                    .help("Open Find My to request a sound when an offline device reconnects")
                 Button("Quit") { NSApplication.shared.terminate(nil) }
                     .keyboardShortcut("q", modifiers: .command)
             }
@@ -346,11 +349,11 @@ private struct QuickRow: View {
                 HStack(spacing: 8) {
                     Image(systemName: target.kind.symbol)
                         .font(.system(size: 13))
-                        .foregroundStyle(Color.ringText)
+                        .foregroundStyle(model.availabilityState(target) == .online ? Color.ringText : Color.secondary)
                         .frame(width: 18)
                     Text(target.name).font(.system(size: 13)).lineLimit(1).layoutPriority(1)
                     Spacer(minLength: 6)
-                    Text(model.detail(target)).font(.system(size: 11.5)).foregroundStyle(.secondary).lineLimit(1)
+                    Text(model.availabilityState(target).title).font(.system(size: 11.5)).foregroundStyle(.secondary).lineLimit(1)
                     if model.ringingID == target.id {
                         ProgressView().controlSize(.small).frame(width: 30)
                     } else if let number {
@@ -361,7 +364,7 @@ private struct QuickRow: View {
             }
             .buttonStyle(.plain)
             .modifier(OptionalShortcut(number: number))
-            .disabled(model.ringingID != nil)
+            .disabled(model.ringingID != nil || model.availabilityState(target) != .online)
         }
         .padding(.horizontal, 6)
         .frame(height: 36)
@@ -406,6 +409,7 @@ private struct RecentRow: View {
                     .foregroundStyle(.secondary).frame(width: 18)
                 Text(target.name).font(.system(size: 12.5)).lineLimit(1)
                 Spacer()
+                Text(model.availabilityState(target).title).font(.system(size: 11)).foregroundStyle(.secondary)
                 if model.ringingID == target.id { ProgressView().controlSize(.small) }
             }
             .padding(.horizontal, 8)
@@ -422,7 +426,7 @@ private struct RecentRow: View {
                 model.toggleFavorite(target)
             }
         }
-        .disabled(model.ringingID != nil)
+        .disabled(model.ringingID != nil || model.availabilityState(target) != .online)
     }
 }
 
@@ -456,7 +460,7 @@ private struct SearchResultRow: View {
                     Image(systemName: target.kind.symbol).frame(width: 20)
                     VStack(alignment: .leading, spacing: 1) {
                         Text(target.name).font(.system(size: 13, weight: .semibold)).lineLimit(1)
-                        Text(model.isHidden(target) ? "Hidden · " + model.detail(target) : model.detail(target))
+                        Text(model.availabilityState(target).title)
                             .font(.system(size: 11.5)).opacity(0.85).lineLimit(1)
                     }
                     Spacer()
@@ -469,6 +473,7 @@ private struct SearchResultRow: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .disabled(model.ringingID != nil || model.availabilityState(target) != .online)
         }
         .padding(.horizontal, 6)
         .frame(height: 44)

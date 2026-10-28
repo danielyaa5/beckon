@@ -19,6 +19,11 @@ final class AppModel: ObservableObject {
     @Published private(set) var history: [SharedStore.RingEvent] = []
     /// The latest outcome, shown at the bottom of the menu.
     @Published var status = ""
+    @Published private(set) var availability = AvailabilitySnapshot()
+    private var monitorTask: Task<Void, Never>?
+    private var freshnessTask: Task<Void, Never>?
+    private var statusChecking = false
+    private var widgetReloadPolicy = AvailabilityWidgetReloadPolicy()
     @Published private(set) var refreshing = false
     /// The target being rung right now.
     @Published private(set) var ringingID: String?
@@ -37,6 +42,7 @@ final class AppModel: ObservableObject {
         SharedStore.prepare()
         config = SharedStore.load()
         history = SharedStore.history()
+        availability = SharedStore.availability()
         // Re-save in the current format: since 0.4 the device list keeps no
         // battery, location or place, so this drops any an older version saved.
         if !config.devices.isEmpty { SharedStore.save(config) }
@@ -109,6 +115,71 @@ final class AppModel: ObservableObject {
         return ["iPhone and iPad", "Mac", "Audio", "Watch", "Other"].filter(present.contains)
     }
 
+    func availabilityState(_ t: RingTarget) -> DeviceAvailability {
+        availability.state(for: t.id)
+    }
+
+    func startMonitoring() {
+        guard monitorTask == nil, SharedStore.demo == nil else { return }
+        freshnessTask = Task { [weak self] in
+            while !Task.isCancelled {
+                do { try await Task.sleep(for: .seconds(1)) } catch { return }
+                guard let self else { return }
+                if self.availability.valid && self.availability.expires <= .now {
+                    self.availability.valid = false
+                    WidgetCenter.shared.reloadAllTimelines()
+                }
+            }
+        }
+        monitorTask = Task { [weak self] in
+            var policy = AvailabilityPollPolicy()
+            while !Task.isCancelled {
+                guard let self else { return }
+                let started = Date()
+                let ok = await self.refreshAvailability()
+                let delay = policy.completed(ok: ok)
+                do { try await Task.sleep(for: .seconds(max(0.1, delay - Date().timeIntervalSince(started)))) } catch { return }
+            }
+        }
+    }
+
+    @discardableResult
+    func refreshAvailability() async -> Bool {
+        if statusChecking {
+            while statusChecking && !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            return !Task.isCancelled && availability.valid && availability.expires > .now
+        }
+        guard SharedStore.demo == nil, hasCredentials else { return false }
+        statusChecking = true
+        let account = appleID
+        defer { statusChecking = false }
+        do {
+            guard let password = SharedStore.password(appleID: account) else { return false }
+            let fresh = try await service.availability(appleID: account, password: password)
+            guard !Task.isCancelled, account == appleID else { return false }
+            let changed = widgetReloadPolicy.shouldReload(previous: availability, current: fresh, now: .now)
+            availability = fresh
+            SharedStore.saveAvailability(fresh)
+            StatusProbe.recordRuntime(fresh)
+            if changed {
+                WidgetCenter.shared.reloadAllTimelines()
+            }
+            return true
+        } catch {
+            guard account == appleID else { return false }
+            let wasValid = availability.valid
+            availability = AvailabilitySnapshot(checkedAt: .now)
+            SharedStore.saveAvailability(availability)
+            if wasValid { WidgetCenter.shared.reloadAllTimelines() }
+            if let e = error as? RingError, e.kind == .badCredentials || e.kind == .accountLocked {
+                rejectSavedPassword(e)
+            }
+            return false
+        }
+    }
+
     // MARK: Changing
 
     private func commit(_ change: (inout SharedStore.Config) -> Void) {
@@ -178,6 +249,7 @@ final class AppModel: ObservableObject {
             refreshError = nil
             status = devices.isEmpty ? "No ringable devices found." : ""
             FindMyRingShortcuts.updateAppShortcutParameters()
+            startMonitoring()
             return true
         } catch let error as RingError {
             status = error.message
@@ -203,6 +275,9 @@ final class AppModel: ObservableObject {
     }
 
     func signOut() {
+        monitorTask?.cancel(); monitorTask = nil
+        freshnessTask?.cancel(); freshnessTask = nil
+        availability = AvailabilitySnapshot()
         SharedStore.clear(appleID: appleID)
         Task { await service.forget() }
         config = SharedStore.load()
@@ -252,7 +327,7 @@ final class AppModel: ObservableObject {
         // Keep only the fields ringing needs, never location or battery data.
         found.filter(\.canRing).map {
             SharedStore.CachedDevice(id: $0.id, name: $0.name, model: $0.model,
-                                     deviceClass: $0.deviceClass, online: $0.isOnline)
+                                     deviceClass: $0.deviceClass, online: $0.availability == .unknown ? nil : $0.availability == .online)
         }
     }
 
@@ -266,6 +341,7 @@ final class AppModel: ObservableObject {
     /// only to ring. The one exception is a first load when no list is saved.
     func willAppear() {
         reloadHistory()
+        startMonitoring()
         guard hasCredentials, !refreshing, config.devices.isEmpty, !triedFirstLoad else { return }
         triedFirstLoad = true
         Task { await refresh() }
@@ -282,14 +358,27 @@ final class AppModel: ObservableObject {
         }
         ringingID = t.id
         defer { ringingID = nil }
-        status = "Ringing \(t.name)…"
+        status = "Sending request for \(t.name)…"
 
         var problem: String?
+        var uncertain = false
         if let password = SharedStore.password(appleID: appleID) {
             do {
+                // Always recheck inside the action: the visible widget/menu may be stale.
+                guard await refreshAvailability() else {
+                    status = "Needs refresh. Check your connection and refresh status."
+                    return false
+                }
+                guard availability.state(for: t.id) == .online else {
+                    status = availability.state(for: t.id) == .offline
+                        ? "Offline. Open Find My to request a sound when it reconnects."
+                        : "Needs refresh. Apple hasn't reported availability for this device."
+                    return false
+                }
                 try await service.ring(deviceID: t.device.id, appleID: appleID, password: password)
             } catch let error as RingError {
                 problem = error.message
+                uncertain = error.kind == .uncertain
                 if error.kind == .badCredentials || error.kind == .accountLocked { rejectSavedPassword(error) }
             } catch {
                 problem = error.localizedDescription
@@ -299,9 +388,9 @@ final class AppModel: ObservableObject {
         }
 
         let ok = problem == nil
-        status = problem ?? "Rang \(t.name). Apple will email you."
+        status = problem ?? "Request sent for \(t.name). Playback isn't confirmed."
         SharedStore.record(.init(
-            target: t.id, name: t.name, kind: t.kind, date: .now, source: source, ok: ok, note: problem))
+            target: t.id, name: t.name, kind: t.kind, date: .now, source: source, ok: ok, note: problem, uncertain: uncertain))
         reloadHistory()
         WidgetCenter.shared.reloadTimelines(ofKind: "RecentWidget")
         Self.log.notice("Ring from \(source, privacy: .public): \(ok ? "sent" : "failed", privacy: .public)")

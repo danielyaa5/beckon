@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import WidgetKit
+import FindMyRingKit
 
 /// `Beckon --screenshots <folder>`: draws every screen with made-up devices
 /// (`DemoData`), saves each as a PNG with its window shadow, and quits. The
@@ -89,6 +90,17 @@ enum Screenshots {
             }
             await shoot("widget-medium-\(suffix)", style: .clear) {
                 WidgetFrame(family: .systemMedium) { FavoritesView(entry: favorites(state, on: airPods), familyOverride: .systemMedium) }
+            }
+        }
+        // Availability fixtures use the real widget views without any network.
+        for (availability, suffix) in [(DeviceAvailability.offline, "offline"), (.unknown, "needs-refresh")] {
+            var entry = favorites(nil, on: phone)
+            entry.availability = AvailabilitySnapshot(devices: [phone.id: availability], checkedAt: .now, valid: true)
+            await shoot("widget-small-" + suffix, style: .clear) {
+                WidgetFrame(family: .systemSmall) { FavoritesView(entry: entry, familyOverride: .systemSmall) }
+            }
+            await shoot("widget-medium-" + suffix, style: .clear) {
+                WidgetFrame(family: .systemMedium) { FavoritesView(entry: entry, familyOverride: .systemMedium) }
             }
         }
         let history = SharedStore.history()
