@@ -62,6 +62,16 @@ that the device played a sound. **Couldn't confirm** means it may have gone
 through; Beckon does not automatically retry that request. Open **Find My** to
 request a sound for an offline device when it reconnects.
 
+## Menu bar icon (after 0.7.1)
+
+The menu bar icon is on by default. Settings > Show Beckon in the menu bar
+turns it off. An app with no Dock icon doesn't need a menu bar icon: Beckon
+keeps running, so shortcut keys, widgets and availability checks keep working.
+To get back to the window, open Beckon again from Applications or Spotlight,
+click a Beckon widget, open `beckon://open`, or press the palette shortcut
+(⌃⌥Space) and then ⌘,. With the icon hidden, opening Beckon shows its window
+at launch too, except when macOS opens it at login or to handle a link.
+
 ## Updates (0.5.1)
 
 Beckon uses [Sparkle](https://sparkle-project.org/) to check for signed updates.
@@ -103,7 +113,8 @@ of them (see "Screenshots and the website" below).
   to ring and star, hidden devices, ring history and Settings, plus an AirTags
   entry that opens Find My's Items tab. Like NordVPN, the app lives only in the menu bar
   with no Dock icon; the window brings a Dock icon while it's open (or always,
-  if Settings says so).
+  if Settings says so). Settings can also hide the menu bar icon (see "Menu bar
+  icon" below).
 - **Widgets**: "Ring" (favorites; small = one device with its shortcut key) and
   "Last rings" (tap to ring again). After a tap the
   button says "Sending…" while the widget signs in and sends the ring, then

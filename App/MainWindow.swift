@@ -389,14 +389,23 @@ private struct HistoryPane: View {
 private struct SettingsPane: View {
     @EnvironmentObject var model: AppModel
     @AppStorage(DockPolicy.alwaysKey) private var alwaysInDock = false
+    @AppStorage(MenuBarIcon.key) private var showMenuBarIcon = true
     @State private var openAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginError: String?
 
     var body: some View {
         Form {
             Section("Menu bar and Dock") {
-                Text("Beckon lives in the menu bar. This window adds a Dock icon while it's open.")
+                Text(showMenuBarIcon
+                     ? "Beckon lives in the menu bar. This window adds a Dock icon while it's open."
+                     : "Beckon keeps running with no menu bar icon. This window adds a Dock icon while it's open.")
                     .foregroundStyle(.secondary)
+                Toggle("Show Beckon in the menu bar", isOn: $showMenuBarIcon)
+                if !showMenuBarIcon {
+                    Text(MenuBarIcon.wayBack)
+                        .font(.footnote).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 Toggle("Keep the Dock icon after closing this window", isOn: $alwaysInDock)
                     .onChange(of: alwaysInDock) { DockPolicy.windowOpened() }
                 Toggle("Open at login", isOn: $openAtLogin)

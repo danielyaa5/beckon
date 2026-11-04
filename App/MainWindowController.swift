@@ -80,6 +80,32 @@ enum DockPolicy {
     }
 }
 
+/// The menu bar icon, shown by default. An app with no Dock icon doesn't need
+/// one: hidden, Beckon keeps running (shortcut keys, widgets, availability
+/// checks), and opening it again from Finder or Spotlight shows the window, as
+/// does a widget tap, a `beckon://open` link or ⌘, in the ring palette.
+enum MenuBarIcon {
+    static let key = "showMenuBarIcon"
+
+    static var isShown: Bool { UserDefaults.standard.object(forKey: key) as? Bool ?? true }
+
+    /// How to get back to Beckon with the icon hidden, for Settings.
+    @MainActor static var wayBack: String {
+        let ways = Hotkeys.text(for: .openPalette).map { ", click a Beckon widget, or press \($0) and then ⌘, in the ring palette" }
+            ?? ", or click a Beckon widget"
+        return "To get back here, open Beckon again from Applications or Spotlight\(ways). Shortcut keys, widgets and availability checks keep working."
+    }
+
+    /// Whether the person opened Beckon themselves (Finder, Spotlight, the
+    /// Dock, `open`), not macOS at login or a link. Read in
+    /// `applicationDidFinishLaunching`, while the launch event is current.
+    @MainActor static var launchedByPerson: Bool {
+        guard let event = NSAppleEventManager.shared().currentAppleEvent else { return true }
+        guard event.eventID == AEEventID(kAEOpenApplication) else { return false }
+        return event.paramDescriptor(forKeyword: AEKeyword(keyAEPropData))?.enumCodeValue != OSType(keyAELaunchedAsLogInItem)
+    }
+}
+
 /// `beckon://` links, for Raycast, Alfred, Stream Deck and bookmarks:
 ///   beckon://ring/<name or id>   rings it
 ///   beckon://palette             opens the ring palette

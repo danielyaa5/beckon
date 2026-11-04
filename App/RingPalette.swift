@@ -105,7 +105,8 @@ struct PaletteView: View {
             Divider()
 
             if results.isEmpty {
-                Text(model.hasCredentials ? "No matches" : "Sign in from the menu bar first")
+                Text(model.hasCredentials ? "No matches"
+                     : MenuBarIcon.isShown ? "Sign in from the menu bar first" : "Press ⌘, to open Beckon and sign in")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 22)
@@ -121,7 +122,8 @@ struct PaletteView: View {
             Divider()
 
             HStack {
-                Text("↩ ring · ⌘↩ ring and keep open · ⌘S star")
+                // With no menu bar icon, ⌘, is the shortcut's way to Settings.
+                Text("↩ ring · ⌘↩ ring and keep open · ⌘S star" + (MenuBarIcon.isShown ? "" : " · ⌘, settings"))
                 Spacer()
                 let hidden = matches.filter(model.isHidden).count
                 Text("\(matches.count) match\(matches.count == 1 ? "" : "es")" + (hidden > 0 ? " · \(hidden) hidden" : ""))
@@ -139,6 +141,11 @@ struct PaletteView: View {
                     .keyboardShortcut(.return, modifiers: .command)
                 Button("Star") { if let t = current { model.toggleFavorite(t) } }
                     .keyboardShortcut("s", modifiers: .command)
+                Button("Settings") {
+                    close()
+                    MainWindowController.shared.show(.settings)
+                }
+                .keyboardShortcut(",", modifiers: .command)
             }
             .opacity(0)
             .frame(width: 0, height: 0)

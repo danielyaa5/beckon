@@ -3,6 +3,13 @@ import SwiftUI
 @main
 struct FindMyRingApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    @AppStorage(MenuBarIcon.key) private var showMenuBarIcon = true
+
+    /// Settings can hide the icon; screenshots and the status probe never show it.
+    private var menuBarIconInserted: Binding<Bool> {
+        Binding(get: { showMenuBarIcon && !Screenshots.active && !StatusProbe.active },
+                set: { showMenuBarIcon = $0 })
+    }
 
     init() {
         // Before anything reads the settings: screenshots use made-up devices.
@@ -13,7 +20,7 @@ struct FindMyRingApp: App {
     }
 
     var body: some Scene {
-        MenuBarExtra(isInserted: .constant(!Screenshots.active && !StatusProbe.active)) {
+        MenuBarExtra(isInserted: menuBarIconInserted) {
             MenuPopover().environmentObject(AppModel.shared)
         } label: {
             Image(systemName: "iphone.radiowaves.left.and.right")
@@ -31,6 +38,8 @@ struct FindMyRingApp: App {
 /// Launch work that can't wait for the menu to be opened.
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Before anything can show a dialog and replace the launch event.
+        let launchedByPerson = MenuBarIcon.launchedByPerson
         if StatusProbe.active {
             NSApp.setActivationPolicy(.accessory)
             Task { await StatusProbe.run() }
@@ -60,6 +69,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !backgroundLaunch && OnboardingController.shouldShow(hasCredentials: model.hasCredentials) {
             OnboardingController.shared.show()
         } else if !backgroundLaunch && !model.hasCredentials {
+            MainWindowController.shared.show()
+        } else if !backgroundLaunch && !MenuBarIcon.isShown && launchedByPerson {
+            // With no menu bar icon, opening the app has to show something.
             MainWindowController.shared.show()
         }
         if !backgroundLaunch { Task { await Installation.offerCleanup() } }
