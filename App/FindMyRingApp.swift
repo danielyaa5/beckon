@@ -5,10 +5,11 @@ struct FindMyRingApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @AppStorage(MenuBarIcon.key) private var showMenuBarIcon = true
 
-    /// Settings can hide the icon; screenshots and the status probe never show it.
+    /// Settings can hide the icon; screenshots and the status probe never show
+    /// it, and never save their hidden icon as the setting.
     private var menuBarIconInserted: Binding<Bool> {
         Binding(get: { showMenuBarIcon && !Screenshots.active && !StatusProbe.active },
-                set: { showMenuBarIcon = $0 })
+                set: { if !Screenshots.active && !StatusProbe.active { showMenuBarIcon = $0 } })
     }
 
     init() {
