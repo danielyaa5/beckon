@@ -427,7 +427,7 @@ private struct SettingsPane: View {
             }
 
             Section("Device list") {
-                Text("Beckon signs in to Apple only to ring, and to load your device names when you sign in or press Reload. It doesn't check on your devices in the background or keep battery or location data.")
+                Text("Beckon checks Apple's reported device availability in the background while running, and loads your device names when you sign in or press Reload. It never keeps battery or location data.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 LabeledContent(model.listLoadedText) {

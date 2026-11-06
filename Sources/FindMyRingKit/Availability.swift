@@ -36,6 +36,12 @@ public struct AvailabilitySnapshot: Codable, Equatable, Sendable {
         guard valid, now >= checkedAt.addingTimeInterval(-5), now < expires else { return .unknown }
         return devices[id] ?? .unknown
     }
+
+    /// Whether two snapshots render identically in the app's UI (`valid` and
+    /// per-device states match, ignoring the `checkedAt` timestamp).
+    public func hasSameDisplayState(as other: AvailabilitySnapshot) -> Bool {
+        valid == other.valid && devices == other.devices
+    }
 }
 
 /// Polling targets one second without overlapping requests; errors reduce traffic.

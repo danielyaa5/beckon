@@ -33,6 +33,7 @@ final class RingPalette: NSObject, NSWindowDelegate {
 
     func close() {
         panel?.orderOut(nil)
+        panel?.contentView = nil
     }
 
     func windowDidResignKey(_ notification: Notification) {

@@ -19,7 +19,7 @@ final class AppModel: ObservableObject {
     @Published private(set) var history: [SharedStore.RingEvent] = []
     /// The latest outcome, shown at the bottom of the menu.
     @Published var status = ""
-    @Published private(set) var availability = AvailabilitySnapshot()
+    private(set) var availability = AvailabilitySnapshot()
     private var monitorTask: Task<Void, Never>?
     private var freshnessTask: Task<Void, Never>?
     private var statusChecking = false
@@ -119,6 +119,19 @@ final class AppModel: ObservableObject {
         availability.state(for: t.id)
     }
 
+    /// Updates the latest availability snapshot while only publishing a SwiftUI
+    /// change when `valid` or a device's state actually changed. Re-publishing
+    /// every one-second `checkedAt` bump while hidden windows (`MenuBarExtra`,
+    /// closed `MainWindow`) are offscreen leaks Swift `ObservationTracking`
+    /// registrations over multi-day runs.
+    private func setAvailability(_ next: AvailabilitySnapshot) {
+        let changed = !availability.hasSameDisplayState(as: next)
+        availability = next
+        if changed {
+            objectWillChange.send()
+        }
+    }
+
     func startMonitoring() {
         guard monitorTask == nil, SharedStore.demo == nil else { return }
         freshnessTask = Task { [weak self] in
@@ -126,7 +139,9 @@ final class AppModel: ObservableObject {
                 do { try await Task.sleep(for: .seconds(1)) } catch { return }
                 guard let self else { return }
                 if self.availability.valid && self.availability.expires <= .now {
-                    self.availability.valid = false
+                    var expired = self.availability
+                    expired.valid = false
+                    self.setAvailability(expired)
                     WidgetCenter.shared.reloadAllTimelines()
                 }
             }
@@ -160,7 +175,7 @@ final class AppModel: ObservableObject {
             let fresh = try await service.availability(appleID: account, password: password)
             guard !Task.isCancelled, account == appleID else { return false }
             let changed = widgetReloadPolicy.shouldReload(previous: availability, current: fresh, now: .now)
-            availability = fresh
+            setAvailability(fresh)
             SharedStore.saveAvailability(fresh)
             StatusProbe.recordRuntime(fresh)
             if changed {
@@ -170,7 +185,7 @@ final class AppModel: ObservableObject {
         } catch {
             guard account == appleID else { return false }
             let wasValid = availability.valid
-            availability = AvailabilitySnapshot(checkedAt: .now)
+            setAvailability(AvailabilitySnapshot(checkedAt: .now))
             SharedStore.saveAvailability(availability)
             if wasValid { WidgetCenter.shared.reloadAllTimelines() }
             if let e = error as? RingError, e.kind == .badCredentials || e.kind == .accountLocked {
@@ -277,7 +292,7 @@ final class AppModel: ObservableObject {
     func signOut() {
         monitorTask?.cancel(); monitorTask = nil
         freshnessTask?.cancel(); freshnessTask = nil
-        availability = AvailabilitySnapshot()
+        setAvailability(AvailabilitySnapshot())
         SharedStore.clear(appleID: appleID)
         Task { await service.forget() }
         config = SharedStore.load()

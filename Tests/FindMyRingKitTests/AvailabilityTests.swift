@@ -71,4 +71,18 @@ final class AvailabilityTests: XCTestCase {
         XCTAssertEqual(roundTrip, original)
         XCTAssertEqual(roundTrip.state(for: "phone", at: Date(timeIntervalSince1970: 1100)), .unknown)
     }
+
+    func testUnchangedDisplayStateSkipsRedundantViewInvalidation() {
+        let first = AvailabilitySnapshot(devices: ["phone": .online, "watch": .offline],
+                                         checkedAt: Date(timeIntervalSince1970: 1000), valid: true)
+        let sameStateLater = AvailabilitySnapshot(devices: ["phone": .online, "watch": .offline],
+                                                  checkedAt: Date(timeIntervalSince1970: 1005), valid: true)
+        let statusChanged = AvailabilitySnapshot(devices: ["phone": .offline, "watch": .offline],
+                                                 checkedAt: Date(timeIntervalSince1970: 1006), valid: true)
+        let invalidated = AvailabilitySnapshot(devices: ["phone": .online, "watch": .offline],
+                                               checkedAt: Date(timeIntervalSince1970: 1006), valid: false)
+        XCTAssertTrue(first.hasSameDisplayState(as: sameStateLater))
+        XCTAssertFalse(first.hasSameDisplayState(as: statusChanged))
+        XCTAssertFalse(first.hasSameDisplayState(as: invalidated))
+    }
 }
