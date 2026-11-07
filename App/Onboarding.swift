@@ -41,6 +41,7 @@ final class OnboardingController: NSObject, NSWindowDelegate {
 
     func windowWillClose(_ notification: Notification) {
         if !Screenshots.active { UserDefaults.standard.set(true, forKey: Self.completedKey) }
+        window?.contentViewController = nil
         window = nil
         Task { MainWindowController.shared.show() }
     }

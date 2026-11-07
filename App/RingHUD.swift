@@ -56,6 +56,7 @@ final class RingHUD {
             }
             guard !Task.isCancelled else { return }
             panel.orderOut(nil)
+            panel.contentView = nil
         }
     }
 

@@ -14,6 +14,9 @@ final class MainWindowController: NSObject, NSWindowDelegate {
     func show(_ section: WindowSection? = nil) {
         if let section { AppModel.shared.section = section }
         let window = self.window ?? make()
+        if window.contentViewController == nil {
+            window.contentViewController = Self.makeHost()
+        }
         self.window = window
         DockPolicy.windowOpened()
         window.makeKeyAndOrderFront(nil)
@@ -22,7 +25,17 @@ final class MainWindowController: NSObject, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
+        window?.contentViewController = nil
         DockPolicy.windowClosed()
+    }
+
+    private static func makeHost() -> NSHostingController<some View> {
+        let host = NSHostingController(rootView: MainWindow().environmentObject(AppModel.shared))
+        // The window keeps its own size. By default the hosting controller
+        // sizes the window to the content's ideal size, which made it 860 by
+        // 1838 points: taller than the screen, with pages floating mid-window.
+        host.sizingOptions = []
+        return host
     }
 
     private func make() -> NSWindow {
@@ -32,12 +45,7 @@ final class MainWindowController: NSObject, NSWindowDelegate {
         window.title = "Beckon"
         window.titlebarAppearsTransparent = true
         window.isReleasedWhenClosed = false
-        let host = NSHostingController(rootView: MainWindow().environmentObject(AppModel.shared))
-        // The window keeps its own size. By default the hosting controller
-        // sizes the window to the content's ideal size, which made it 860 by
-        // 1838 points: taller than the screen, with pages floating mid-window.
-        host.sizingOptions = []
-        window.contentViewController = host
+        window.contentViewController = Self.makeHost()
         window.setContentSize(NSSize(width: 1060, height: 720))
         window.minSize = NSSize(width: 760, height: 520)
         window.delegate = self
