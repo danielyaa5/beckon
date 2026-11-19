@@ -11,7 +11,7 @@ was renamed Beckon in 0.4.1 (both 2026-10-16).
 
 ![Typing "air" in Beckon's palette rings AirPods; clicking Ring on the desktop widget shows Sending, then Sent](docs/demo.gif)
 
-**Website:** https://danielyaa5.github.io/beckon/
+**Website:** https://danielyakobian.com/beckon/
 
 ## Download
 
@@ -218,8 +218,12 @@ a window placed off screen. The widgets' views live in
 `release/make_media.py` (Pillow and ffmpeg) composes the screenshots, the
 widgets picture and the demo GIF/MP4 into `docs/`.
 
-`docs/` is also the GitHub Pages site, https://danielyaa5.github.io/beckon/
-(`docs/index.html`; `.nojekyll` serves files as they are).
+`docs/` is also the GitHub Pages site at https://danielyaa5.github.io/beckon/
+(`.nojekyll` serves files as they are). It serves the update feed, `appcast.xml`,
+which installed copies check, so it has to stay there. The website, privacy policy and terms
+now live at https://danielyakobian.com/beckon/, and `docs/index.html`, `privacy.html` and
+`terms.html` only forward there. The screenshots and demo here are also the website's: after
+regenerating them, copy them as WebP into `assets/beckon/` in the `danielyaa5.github.io` repository.
 
 ## Build
 
